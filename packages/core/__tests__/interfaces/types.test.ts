@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest"
 import type { Retriever } from "../../src/interfaces/retriever.js"
 import type { Generator } from "../../src/interfaces/generator.js"
 import type { RAGPipeline } from "../../src/pipeline/types.js"
-import type { Query } from "../../src/types/query.js"
-import type { Chunk } from "../../src/types/chunk.js"
-import type { RAGResponse } from "../../src/types/rag-response.js"
+import type { Query } from "../../src/spec/query.js"
+import type { Chunk } from "../../src/spec/chunk.js"
+import type { RAGResponse } from "../../src/spec/rag-response.js"
 
 describe("Interface type compatibility", () => {
   it("a mock object satisfies Retriever", () => {

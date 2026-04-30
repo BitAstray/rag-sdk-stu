@@ -5,3 +5,5 @@ export const RAGResponseSchema = z.object({
   answer: z.string(),
   chunks: z.array(ChunkSchema),
 })
+
+export type RAGResponse = z.infer<typeof RAGResponseSchema>

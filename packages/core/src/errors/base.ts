@@ -9,3 +9,7 @@ export class RagError extends Error {
     this.cause = cause
   }
 }
+
+export function createRagError(code: string, message: string, cause?: unknown): RagError {
+  return new RagError(message, code, cause)
+}

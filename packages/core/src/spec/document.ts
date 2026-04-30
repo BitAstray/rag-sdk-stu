@@ -6,3 +6,5 @@ export const DocumentSchema = z.object({
   content: z.string(),
   metadata: z.record(MetadataValue).optional(),
 })
+
+export type Document = z.infer<typeof DocumentSchema>

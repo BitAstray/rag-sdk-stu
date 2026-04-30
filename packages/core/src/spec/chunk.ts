@@ -6,3 +6,5 @@ export const ChunkSchema = z.object({
   content: z.string(),
   metadata: z.record(MetadataValue).optional(),
 })
+
+export type Chunk = z.infer<typeof ChunkSchema>

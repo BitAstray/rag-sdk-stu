@@ -6,3 +6,5 @@ export const VectorSchema = z.object({
   values: z.array(z.number()),
   metadata: z.record(MetadataValue).optional(),
 })
+
+export type Vector = z.infer<typeof VectorSchema>

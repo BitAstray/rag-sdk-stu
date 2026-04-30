@@ -1,5 +1,5 @@
-import type { Query } from "../types/query.js"
-import type { Chunk } from "../types/chunk.js"
+import type { Query } from "../spec/query.js"
+import type { Chunk } from "../spec/chunk.js"
 
 export interface Retriever {
   retrieve(query: Query): Promise<Chunk[]>
