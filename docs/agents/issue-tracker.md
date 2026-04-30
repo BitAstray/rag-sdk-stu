@@ -1,19 +1,22 @@
-# Issue Tracker: 本地 Markdown
+# Issue tracker: GitHub
 
-本仓库的 Issue 和 PRD 以 Markdown 文件形式存储在 `.scratch/` 目录下。
+Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
-## 约定
+## Conventions
 
-- 每个功能一个目录：`.scratch/<feature-slug>/`
-- PRD 文件：`.scratch/<feature-slug>/PRD.md`
-- 实现 Issue：`.scratch/<feature-slug>/issues/<NN>-<slug>.md`，从 `01` 开始编号
-- 分流状态记录在每个 Issue 文件顶部附近的 `Status:` 行（参见 `triage-labels.md` 中的角色字符串）
-- 评论和对话记录追加在文件底部的 `## Comments` 标题下
+- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
+- **Read an issue**: `gh issue view <number> --comments`, filtering comments by `jq` and also fetching labels.
+- **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
+- **Comment on an issue**: `gh issue comment <number> --body "..."`
+- **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
+- **Close**: `gh issue close <number> --comment "..."`
 
-## 当技能说"发布到问题追踪器"时
+Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
 
-在 `.scratch/<feature-slug>/` 下创建新文件（如需要则创建目录）。
+## When a skill says "publish to the issue tracker"
 
-## 当技能说"获取相关票据"时
+Create a GitHub issue.
 
-读取引用路径处的文件。用户通常会直接传递路径或 Issue 编号。
+## When a skill says "fetch the relevant ticket"
+
+Run `gh issue view <number> --comments`.

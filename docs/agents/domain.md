@@ -1,49 +1,38 @@
 # Domain Docs
 
-工程技能在探索代码库时如何消费本仓库的领域文档。
+How the engineering skills should consume this repo's domain documentation when exploring the codebase.
 
-## 探索前先读这些
+## Before exploring, read these
 
-- **`CONTEXT-MAP.md`**（仓库根目录）— 指向各子目录的 `CONTEXT.md`，读取与当前主题相关的上下文
-- **`docs/decisions/`** — 阅读与当前工作区域相关的 ADR（架构决策记录）
+- **`CONTEXT-MAP.md`** at the repo root — it points at one `CONTEXT.md` per package. Read each one relevant to the topic.
+- **`docs/adr/`** — read ADRs that touch the area you're about to work in.
 
-如果这些文件不存在，**静默跳过**。不要标记其缺失，也不要主动建议创建。生产者技能（`/grill-with-docs`）会在术语或决策实际被解决时懒创建它们。
+If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The producer skill (`/grill-with-docs`) creates them lazily when terms or decisions actually get resolved.
 
-## 文件结构
+## File structure
 
-多上下文仓库（本仓库采用此模式）：
+Multi-context repo (monorepo with per-package contexts):
 
 ```
 /
-├── CONTEXT-MAP.md
-├── docs/decisions/                    ← 系统级决策
-│   ├── ADR-001-monorepo-dependency-installation-strategy.md
-│   └── ADR-002-verification-system.md
+├── CONTEXT-MAP.md                     ← points to per-package CONTEXT.md
+├── docs/adr/                          ← system-wide decisions
 └── packages/
     ├── core/
-    │   └── CONTEXT.md
+    │   └── CONTEXT.md                 ← core domain language
     ├── runtime/
-    │   └── CONTEXT.md
-    ├── indexing/
-    │   └── CONTEXT.md
-    ├── adapters/
-    │   └── CONTEXT.md
-    ├── observability/
-    │   └── CONTEXT.md
-    ├── eval/
-    │   └── CONTEXT.md
-    └── utils/
-        └── CONTEXT.md
+    │   └── CONTEXT.md                 ← runtime domain language
+    └── ...
 ```
 
-## 使用术语表的词汇
+## Use the glossary's vocabulary
 
-当输出中涉及领域概念时（Issue 标题、重构提案、假设、测试名称），使用 `CONTEXT.md` 中定义的术语。不要偏离术语表明确避免的同义词。
+When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
 
-如果需要的概念尚未在术语表中，这是一个信号 — 要么你正在发明项目不使用的语言（需重新考虑），要么存在真正的缺口（记录下来供 `/grill-with-docs` 使用）。
+If the concept you need isn't in the glossary yet, that's a signal — either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/grill-with-docs`).
 
-## 标记 ADR 冲突
+## Flag ADR conflicts
 
-如果输出与现有 ADR 矛盾，明确指出而非静默覆盖：
+If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
 
-> _与 ADR-001（Monorepo 依赖安装策略）矛盾 — 但值得重新讨论，因为……_
+> _Contradicts ADR-0003 (adapters structure) — but worth reopening because…_

@@ -1,6 +1,6 @@
 # Context Map
 
-RAG SDK monorepo，7 个包各有独立的领域上下文。
+RAG SDK monorepo，7 个包各有独立的领域上下文。本文档面向 AI，人类文档见 `docs/`。
 
 ## Contexts
 
