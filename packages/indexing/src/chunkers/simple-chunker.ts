@@ -1,5 +1,5 @@
 import type { Chunk, Document } from "@rag-sdk/core"
-import type { Chunker } from "./types.js"
+import type { Chunker } from "./index.js"
 import { DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP } from "../defaults/index.js"
 
 export interface SimpleChunkerOptions {

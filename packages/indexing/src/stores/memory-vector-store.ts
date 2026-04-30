@@ -1,5 +1,5 @@
 import type { Vector } from "@rag-sdk/core"
-import type { VectorStore } from "./types.js"
+import type { VectorStore } from "../types/index.js"
 
 export class MemoryVectorStore implements VectorStore {
   private readonly vectors: Map<string, Vector> = new Map()

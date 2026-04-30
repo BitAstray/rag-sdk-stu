@@ -20,6 +20,7 @@ export { SimpleChunker } from "./chunkers/simple-chunker.js"
 export { MockEmbedder } from "./embedders/mock-embedder.js"
 export { MemoryVectorStore } from "./stores/memory-vector-store.js"
 export { MarkdownLoader } from "./loaders/markdown-loader.js"
+export type { FileSystem } from "./loaders/markdown-loader.js"
 
 // Pipeline
 export { runIndexing } from "./pipeline/run-indexing.js"

@@ -1,1 +1,1 @@
-export type { VectorStore } from "./types.js"
+export type { VectorStore } from "../types/index.js"
