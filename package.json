@@ -1,0 +1,21 @@
+{
+  "name": "rag-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "RAG SDK Monorepo",
+  "scripts": {
+    "typecheck": "pnpm -r exec tsgo --noEmit",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:smoke": "vitest run --project smoke",
+    "check": "pnpm run typecheck && pnpm run test",
+    "verify": "pnpm run check && pnpm run test:integration && pnpm run test:smoke"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "devDependencies": {
+    "@typescript/native-preview": "latest",
+    "tsx": "^4.21.0",
+    "vitest": "^4.1.4"
+  }
+}

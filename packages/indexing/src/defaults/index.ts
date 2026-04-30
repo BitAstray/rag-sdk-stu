@@ -1,0 +1,4 @@
+export const DEFAULT_CHUNK_SIZE = 500
+export const DEFAULT_OVERLAP = 50
+export const DEFAULT_BATCH_SIZE = 10
+export const DEFAULT_VECTOR_DIMENSION = 128
