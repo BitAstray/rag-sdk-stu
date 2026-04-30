@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { createRuntime } from "../../src/pipeline/create-runtime.js"
-import { NoopQueryPreprocessor } from "../../src/defaults/noop-query-preprocessor.js"
-import { PassthroughRetrievalPostprocessor } from "../../src/defaults/passthrough-postprocessor.js"
+import { CoreRetrieverWrapper } from "../../src/defaults/retriever-wrapper.js"
+import { CoreGeneratorWrapper } from "../../src/defaults/generator-wrapper.js"
 import type { Retriever, Generator, Chunk } from "@rag-sdk/core"
 import type { RuntimeRetriever, RuntimeGenerator, QueryPreprocessor } from "../../src/index.js"
 
@@ -20,24 +20,22 @@ describe("createRuntime", () => {
     },
   }
 
-  it("accepts core Retriever + Generator and wraps them", async () => {
+  it("accepts RuntimeRetriever + RuntimeGenerator", async () => {
     const runtime = createRuntime({
-      retriever: coreRetriever,
-      generator: coreGenerator,
+      retriever: new CoreRetrieverWrapper(coreRetriever),
+      generator: new CoreGeneratorWrapper(coreGenerator),
     })
     const result = await runtime.run({ query: "test" })
     expect(result.answer).toBe("answer")
   })
 
-  it("accepts RuntimeRetriever + RuntimeGenerator directly", async () => {
+  it("accepts custom RuntimeRetriever + RuntimeGenerator directly", async () => {
     const runtimeRetriever: RuntimeRetriever = {
-      __runtimeRetriever: true,
       async retrieve() {
         return { chunks, debug: { source: "test" } }
       },
     }
     const runtimeGenerator: RuntimeGenerator = {
-      __runtimeGenerator: true,
       async generate() {
         return { answer: "runtime answer" }
       },
@@ -61,7 +59,6 @@ describe("createRuntime", () => {
       },
     }
     const runtimeRetriever: RuntimeRetriever = {
-      __runtimeRetriever: true,
       async retrieve(input) {
         expect(input.effectiveQuery).toBe("TEST")
         expect(input.strategy).toBe("custom")
@@ -70,7 +67,7 @@ describe("createRuntime", () => {
     }
     const runtime = createRuntime({
       retriever: runtimeRetriever,
-      generator: coreGenerator,
+      generator: new CoreGeneratorWrapper(coreGenerator),
       preprocessor: customPreprocessor,
     })
     await runtime.run({ query: "test" })
@@ -86,8 +83,8 @@ describe("createRuntime", () => {
       },
     }
     const runtime = createRuntime({
-      retriever: coreRetriever,
-      generator: coreGenerator,
+      retriever: new CoreRetrieverWrapper(coreRetriever),
+      generator: new CoreGeneratorWrapper(coreGenerator),
       postprocessor: customPostprocessor,
     })
     const result = await runtime.run({ query: "test" })
@@ -97,8 +94,8 @@ describe("createRuntime", () => {
 
   it("returns Runtime with run() method", () => {
     const runtime = createRuntime({
-      retriever: coreRetriever,
-      generator: coreGenerator,
+      retriever: new CoreRetrieverWrapper(coreRetriever),
+      generator: new CoreGeneratorWrapper(coreGenerator),
     })
     expect(runtime).toHaveProperty("run")
     expect(typeof runtime.run).toBe("function")

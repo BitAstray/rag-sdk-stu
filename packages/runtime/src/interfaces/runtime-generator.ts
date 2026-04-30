@@ -1,14 +1,14 @@
 import type { Chunk } from "@rag-sdk/core"
-import type { PreprocessedQuery } from "../types/preprocessed-query.js"
-import type { RuntimeContext } from "../types/context.js"
+import type { PreprocessedQuery } from "../spec/preprocessed-query.js"
+import type { RuntimeContext } from "../spec/context.js"
+import type { GenerationDebugData } from "../spec/debug.js"
 
 export interface RuntimeGeneratorResult {
   answer: string | null
-  debug?: Record<string, unknown>
+  debug?: GenerationDebugData
 }
 
 export interface RuntimeGenerator {
-  readonly __runtimeGenerator?: true
   generate(
     query: PreprocessedQuery,
     chunks: Chunk[],

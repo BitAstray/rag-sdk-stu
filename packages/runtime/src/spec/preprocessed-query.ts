@@ -9,3 +9,5 @@ export const PreprocessedQuerySchema = z.object({
   route: z.string().optional(),
   rewriteReason: z.string().optional(),
 })
+
+export type PreprocessedQuery = z.infer<typeof PreprocessedQuerySchema>

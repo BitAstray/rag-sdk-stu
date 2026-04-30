@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import type { Retriever, Generator, Chunk } from "@rag-sdk/core"
-import { createDefaultRuntime, createRuntime } from "@rag-sdk/runtime"
+import { createDefaultRuntime, createRuntime, CoreRetrieverWrapper, CoreGeneratorWrapper } from "@rag-sdk/runtime"
 
 describe("runtime defaults → core interface bridging", () => {
   const mockRetriever: Retriever = {
@@ -26,10 +26,10 @@ describe("runtime defaults → core interface bridging", () => {
     expect(result.retrieval.chunks).toHaveLength(1)
   })
 
-  it("createRuntime auto-wraps core interfaces", async () => {
+  it("createRuntime accepts wrapped core interfaces", async () => {
     const runtime = createRuntime({
-      retriever: mockRetriever,
-      generator: mockGenerator,
+      retriever: new CoreRetrieverWrapper(mockRetriever),
+      generator: new CoreGeneratorWrapper(mockGenerator),
     })
 
     const result = await runtime.run({ query: "hello" })
@@ -43,13 +43,11 @@ describe("runtime defaults → core interface bridging", () => {
   it("createRuntime accepts native RuntimeRetriever/RuntimeGenerator", async () => {
     const runtime = createRuntime({
       retriever: {
-        __runtimeRetriever: true as const,
         async retrieve(input) {
           return { chunks: [{ id: "r1", content: input.effectiveQuery }] }
         },
       },
       generator: {
-        __runtimeGenerator: true as const,
         async generate(_query, chunks) {
           return { answer: chunks.map((c) => c.content).join() }
         },

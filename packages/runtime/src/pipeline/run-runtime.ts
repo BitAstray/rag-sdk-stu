@@ -3,8 +3,8 @@ import type { RuntimeRetriever } from "../interfaces/runtime-retriever.js"
 import type { RuntimeGenerator } from "../interfaces/runtime-generator.js"
 import type { QueryPreprocessor } from "../interfaces/query-preprocessor.js"
 import type { RetrievalPostprocessor } from "../interfaces/retrieval-postprocessor.js"
-import type { RuntimeContext } from "../types/context.js"
-import type { RuntimeResult } from "../types/runtime-result.js"
+import type { RuntimeContext } from "../spec/context.js"
+import type { RuntimeResult } from "../spec/runtime-result.js"
 import { RuntimeError } from "../errors/runtime.js"
 
 export interface InternalConfig {

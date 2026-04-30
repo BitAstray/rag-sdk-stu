@@ -3,8 +3,8 @@ import type {
   RuntimeGenerator,
   RuntimeGeneratorResult,
 } from "../interfaces/runtime-generator.js"
-import type { PreprocessedQuery } from "../types/preprocessed-query.js"
-import type { RuntimeContext } from "../types/context.js"
+import type { PreprocessedQuery } from "../spec/preprocessed-query.js"
+import type { RuntimeContext } from "../spec/context.js"
 import { RuntimeError } from "../errors/runtime.js"
 
 export class CoreGeneratorWrapper implements RuntimeGenerator {

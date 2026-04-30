@@ -1,14 +1,8 @@
 import { z } from "zod"
 import { ChunkSchema } from "@rag-sdk/core"
+import { PreprocessedQuerySchema } from "./preprocessed-query.js"
 
-export const PreRetrievalResultSchema = z.object({
-  originalQuery: z.string(),
-  effectiveQuery: z.string(),
-  topK: z.number().int().positive().optional(),
-  filters: z.record(z.unknown()).optional(),
-  strategy: z.string().optional(),
-  route: z.string().optional(),
-  rewriteReason: z.string().optional(),
+export const PreRetrievalResultSchema = PreprocessedQuerySchema.extend({
   durationMs: z.number().nonnegative(),
 })
 
@@ -29,3 +23,8 @@ export const GenerationResultSchema = z.object({
   answer: z.string().nullable(),
   durationMs: z.number().nonnegative(),
 })
+
+export type PreRetrievalResult = z.infer<typeof PreRetrievalResultSchema>
+export type RetrievalResult = z.infer<typeof RetrievalResultSchema>
+export type PostRetrievalResult = z.infer<typeof PostRetrievalResultSchema>
+export type GenerationResult = z.infer<typeof GenerationResultSchema>

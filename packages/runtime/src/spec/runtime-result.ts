@@ -19,3 +19,5 @@ export const RuntimeResultSchema = z.object({
   generation: GenerationResultSchema.nullable(),
   durationMs: z.number().nonnegative(),
 })
+
+export type RuntimeResult = z.infer<typeof RuntimeResultSchema>

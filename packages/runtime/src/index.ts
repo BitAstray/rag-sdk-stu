@@ -1,4 +1,4 @@
-// Types
+// Types & Schemas
 export type {
   PreprocessedQuery,
   PreRetrievalResult,
@@ -7,9 +7,11 @@ export type {
   GenerationResult,
   RuntimeContext,
   RuntimeResult,
-} from "./types/index.js"
-
-// Schemas
+  RetrievalDebugData,
+  PostRetrievalDebugData,
+  GenerationDebugData,
+  RuntimeMetadata,
+} from "./spec/index.js"
 export {
   PreprocessedQuerySchema,
   PreRetrievalResultSchema,
@@ -43,3 +45,5 @@ export type { RuntimeConfig, Runtime } from "./pipeline/runtime-types.js"
 export { NoopQueryPreprocessor } from "./defaults/noop-query-preprocessor.js"
 export { PassthroughRetrievalPostprocessor } from "./defaults/passthrough-postprocessor.js"
 export { createDefaultRuntime } from "./defaults/create-default-runtime.js"
+export { CoreRetrieverWrapper } from "./defaults/retriever-wrapper.js"
+export { CoreGeneratorWrapper } from "./defaults/generator-wrapper.js"

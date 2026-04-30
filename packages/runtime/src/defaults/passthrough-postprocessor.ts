@@ -3,8 +3,8 @@ import type {
   RetrievalPostprocessor,
   RetrievalPostprocessorResult,
 } from "../interfaces/retrieval-postprocessor.js"
-import type { PreprocessedQuery } from "../types/preprocessed-query.js"
-import type { RuntimeContext } from "../types/context.js"
+import type { PreprocessedQuery } from "../spec/preprocessed-query.js"
+import type { RuntimeContext } from "../spec/context.js"
 
 export class PassthroughRetrievalPostprocessor implements RetrievalPostprocessor {
   async postprocess(

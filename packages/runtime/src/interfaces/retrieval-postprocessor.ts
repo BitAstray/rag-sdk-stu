@@ -1,11 +1,12 @@
 import type { Chunk } from "@rag-sdk/core"
-import type { PreprocessedQuery } from "../types/preprocessed-query.js"
-import type { RuntimeContext } from "../types/context.js"
+import type { PreprocessedQuery } from "../spec/preprocessed-query.js"
+import type { RuntimeContext } from "../spec/context.js"
+import type { PostRetrievalDebugData } from "../spec/debug.js"
 
 export interface RetrievalPostprocessorResult {
   chunks: Chunk[]
   promptContext: string | null
-  debug?: Record<string, unknown>
+  debug?: PostRetrievalDebugData
 }
 
 export interface RetrievalPostprocessor {
