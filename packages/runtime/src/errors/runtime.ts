@@ -14,3 +14,12 @@ export class RuntimeError extends RagError {
     this.stage = stage
   }
 }
+
+export function wrapStageError(stage: RuntimeStage, cause: unknown): RuntimeError {
+  if (cause instanceof RuntimeError) return cause
+  return new RuntimeError(
+    stage,
+    `${stage} failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+    cause,
+  )
+}

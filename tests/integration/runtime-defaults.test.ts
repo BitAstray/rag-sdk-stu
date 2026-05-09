@@ -23,7 +23,7 @@ describe("runtime defaults → core interface bridging", () => {
 
     const result = await runtime.run({ query: "test" })
     expect(result.answer).toContain("Generated:")
-    expect(result.retrieval.chunks).toHaveLength(1)
+    expect(result.retrieval.candidates).toHaveLength(1)
   })
 
   it("createRuntime accepts wrapped core interfaces", async () => {
@@ -44,12 +44,12 @@ describe("runtime defaults → core interface bridging", () => {
     const runtime = createRuntime({
       retriever: {
         async retrieve(input) {
-          return { chunks: [{ id: "r1", content: input.effectiveQuery }] }
+          return { candidates: [{ id: "r1", content: input.effectiveQuery }] }
         },
       },
       generator: {
-        async generate(_query, chunks) {
-          return { answer: chunks.map((c) => c.content).join() }
+        async generate(_query, candidates) {
+          return { answer: candidates.map((c) => c.content).join() }
         },
       },
     })
@@ -69,7 +69,7 @@ describe("runtime defaults → core interface bridging", () => {
     expect(result.preRetrieval.durationMs).toBeGreaterThanOrEqual(0)
     expect(result.retrieval.retrievedCount).toBe(1)
     expect(result.retrieval.durationMs).toBeGreaterThanOrEqual(0)
-    expect(result.postRetrieval.chunks).toBeDefined()
+    expect(result.postRetrieval.candidates).toBeDefined()
     expect(result.postRetrieval.durationMs).toBeGreaterThanOrEqual(0)
     expect(result.generation.answer).toBeTruthy()
     expect(result.generation.durationMs).toBeGreaterThanOrEqual(0)

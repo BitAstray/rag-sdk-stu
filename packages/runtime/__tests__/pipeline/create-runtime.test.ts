@@ -4,6 +4,17 @@ import { CoreRetrieverWrapper } from "../../src/defaults/retriever-wrapper.js"
 import { CoreGeneratorWrapper } from "../../src/defaults/generator-wrapper.js"
 import type { Retriever, Generator, Chunk } from "@rag-sdk/core"
 import type { RuntimeRetriever, RuntimeGenerator, QueryPreprocessor } from "../../src/index.js"
+import type { RetrievalPostprocessorResult } from "../../src/interfaces/retrieval-postprocessor.js"
+
+function makePostprocessorResult(
+  candidates: Array<{ id: string; content: string }>,
+  promptContext: string | null = null,
+): RetrievalPostprocessorResult {
+  return {
+    candidates,
+    promptContext,
+  }
+}
 
 describe("createRuntime", () => {
   const chunks: Chunk[] = [{ id: "c1", content: "hello" }]
@@ -32,7 +43,7 @@ describe("createRuntime", () => {
   it("accepts custom RuntimeRetriever + RuntimeGenerator directly", async () => {
     const runtimeRetriever: RuntimeRetriever = {
       async retrieve() {
-        return { chunks, debug: { source: "test" } }
+        return { candidates: [{ id: "c1", content: "hello" }], debug: { source: "test" } }
       },
     }
     const runtimeGenerator: RuntimeGenerator = {
@@ -62,7 +73,7 @@ describe("createRuntime", () => {
       async retrieve(input) {
         expect(input.effectiveQuery).toBe("TEST")
         expect(input.strategy).toBe("custom")
-        return { chunks }
+        return { candidates: [{ id: "c1", content: "hello" }] }
       },
     }
     const runtime = createRuntime({
@@ -76,10 +87,10 @@ describe("createRuntime", () => {
   it("uses provided postprocessor instead of PassthroughRetrievalPostprocessor", async () => {
     const customPostprocessor = {
       async postprocess() {
-        return {
-          chunks: [{ id: "filtered", content: "filtered" }],
-          promptContext: "custom context",
-        }
+        return makePostprocessorResult(
+          [{ id: "filtered", content: "filtered" }],
+          "custom context",
+        )
       },
     }
     const runtime = createRuntime({
@@ -88,7 +99,7 @@ describe("createRuntime", () => {
       postprocessor: customPostprocessor,
     })
     const result = await runtime.run({ query: "test" })
-    expect(result.chunks[0].id).toBe("filtered")
+    expect(result.candidates[0].id).toBe("filtered")
     expect(result.postRetrieval?.promptContext).toBe("custom context")
   })
 

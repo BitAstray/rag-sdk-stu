@@ -1,18 +1,10 @@
 import { describe, it, expect } from "vitest"
 import { CoreGeneratorWrapper } from "../../src/defaults/generator-wrapper.js"
-import { RuntimeError } from "../../src/errors/runtime.js"
 import type { Generator } from "@rag-sdk/core"
+import type { RetrievalCandidate } from "../../src/spec/retrieval-candidate.js"
 
 describe("CoreGeneratorWrapper", () => {
-  const context = {
-    originalQuery: { query: "test" },
-    preprocessed: null,
-    chunks: [],
-    promptContext: null,
-    metadata: {},
-  }
-
-  it("delegates to core generator with effectiveQuery and chunks", async () => {
+  it("delegates to core generator with effectiveQuery and converts candidates to chunks", async () => {
     const coreGenerator: Generator = {
       async generate({ query, chunks }) {
         expect(query.query).toBe("effective")
@@ -21,34 +13,29 @@ describe("CoreGeneratorWrapper", () => {
       },
     }
     const wrapper = new CoreGeneratorWrapper(coreGenerator)
+    const candidates: RetrievalCandidate[] = [{ id: "c1", content: "chunk" }]
     const result = await wrapper.generate(
       { originalQuery: "test", effectiveQuery: "effective" },
-      [{ id: "c1", content: "chunk" }],
+      candidates,
       null,
-      context,
     )
     expect(result.answer).toBe("answer")
   })
 
-  it("wraps generation error into RuntimeError with stage='generation'", async () => {
+  it("propagates core generator errors", async () => {
     const coreGenerator: Generator = {
       async generate() {
         throw new Error("LLM down")
       },
     }
     const wrapper = new CoreGeneratorWrapper(coreGenerator)
-    try {
-      await wrapper.generate(
+    await expect(
+      wrapper.generate(
         { originalQuery: "test", effectiveQuery: "test" },
         [],
         null,
-        context,
-      )
-      expect.fail("should have thrown")
-    } catch (e) {
-      expect(e).toBeInstanceOf(RuntimeError)
-      expect((e as RuntimeError).stage).toBe("generation")
-    }
+      ),
+    ).rejects.toThrow("LLM down")
   })
 
   it("returns answer in RuntimeGeneratorResult shape", async () => {
@@ -62,7 +49,6 @@ describe("CoreGeneratorWrapper", () => {
       { originalQuery: "test", effectiveQuery: "test" },
       [],
       null,
-      context,
     )
     expect(result).toEqual({ answer: "generated text" })
     expect(result.debug).toBeUndefined()

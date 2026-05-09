@@ -4,30 +4,25 @@ import type {
   RuntimeGeneratorResult,
 } from "../interfaces/runtime-generator.js"
 import type { PreprocessedQuery } from "../spec/preprocessed-query.js"
-import type { RuntimeContext } from "../spec/context.js"
-import { RuntimeError } from "../errors/runtime.js"
+import type { RetrievalCandidate } from "../spec/retrieval-candidate.js"
 
 export class CoreGeneratorWrapper implements RuntimeGenerator {
   constructor(private readonly inner: Generator) {}
 
   async generate(
     query: PreprocessedQuery,
-    chunks: Chunk[],
+    candidates: RetrievalCandidate[],
     _promptContext: string | null,
-    _context: RuntimeContext,
   ): Promise<RuntimeGeneratorResult> {
-    try {
-      const answer = await this.inner.generate({
-        query: { query: query.effectiveQuery },
-        chunks,
-      })
-      return { answer }
-    } catch (cause) {
-      throw new RuntimeError(
-        "generation",
-        `Core generator failed: ${cause instanceof Error ? cause.message : String(cause)}`,
-        cause,
-      )
-    }
+    const chunks: Chunk[] = candidates.map(c => ({
+      id: c.id,
+      content: c.content,
+      metadata: c.metadata as Record<string, string | number | boolean | null | string[]> | undefined,
+    }))
+    const answer = await this.inner.generate({
+      query: { query: query.effectiveQuery },
+      chunks,
+    })
+    return { answer }
   }
 }

@@ -1,10 +1,13 @@
 // Types & Schemas
 export type {
   PreprocessedQuery,
+  RetrievalCandidate,
+  SelectionTraceItem,
   PreRetrievalResult,
   RetrievalResult,
   PostRetrievalResult,
   GenerationResult,
+  AppliedBudget,
   RuntimeContext,
   RuntimeResult,
   RetrievalDebugData,
@@ -14,10 +17,13 @@ export type {
 } from "./spec/index.js"
 export {
   PreprocessedQuerySchema,
+  RetrievalCandidateSchema,
+  SelectionTraceItemSchema,
   PreRetrievalResultSchema,
   RetrievalResultSchema,
   PostRetrievalResultSchema,
   GenerationResultSchema,
+  AppliedBudgetSchema,
   RuntimeContextSchema,
   RuntimeResultSchema,
 } from "./spec/index.js"
@@ -29,12 +35,16 @@ export type {
   RuntimeRetrieverResult,
   RetrievalPostprocessor,
   RetrievalPostprocessorResult,
+  SelectionDetail,
   RuntimeGenerator,
   RuntimeGeneratorResult,
 } from "./interfaces/index.js"
 
+// Strategies
+export type { CandidatePredicate } from "./defaults/postprocessor/strategies.js"
+
 // Errors
-export { RuntimeError } from "./errors/runtime.js"
+export { RuntimeError, wrapStageError } from "./errors/runtime.js"
 export type { RuntimeStage } from "./errors/runtime.js"
 
 // Pipeline
@@ -44,6 +54,8 @@ export type { RuntimeConfig, Runtime } from "./pipeline/runtime-types.js"
 // Defaults
 export { NoopQueryPreprocessor } from "./defaults/noop-query-preprocessor.js"
 export { PassthroughRetrievalPostprocessor } from "./defaults/passthrough-postprocessor.js"
+export { createDefaultPostprocessor } from "./defaults/postprocessor/create-default-postprocessor.js"
+export type { DefaultPostprocessorConfig } from "./defaults/postprocessor/create-default-postprocessor.js"
 export { createDefaultRuntime } from "./defaults/create-default-runtime.js"
 export { CoreRetrieverWrapper } from "./defaults/retriever-wrapper.js"
 export { CoreGeneratorWrapper } from "./defaults/generator-wrapper.js"

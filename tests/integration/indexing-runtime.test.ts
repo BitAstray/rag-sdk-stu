@@ -44,7 +44,7 @@ describe("indexing → runtime cross-package pipeline", () => {
     const result = await runtime.run({ query: "TypeScript" })
 
     expect(result.answer).toBeTruthy()
-    expect(result.retrieval.chunks.length).toBeGreaterThan(0)
+    expect(result.retrieval.candidates.length).toBeGreaterThan(0)
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
   })
 })

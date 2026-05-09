@@ -40,7 +40,7 @@ describe("createDefaultRuntime", () => {
     const result = await runtime.run({ query: "RAG" })
 
     expect(result.answer).toContain("RAG")
-    expect(result.chunks.length).toBeGreaterThan(0)
+    expect(result.candidates.length).toBeGreaterThan(0)
     expect(result.originalQuery.query).toBe("RAG")
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
   })

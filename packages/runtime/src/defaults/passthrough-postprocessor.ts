@@ -1,19 +1,17 @@
-import type { Chunk } from "@rag-sdk/core"
 import type {
   RetrievalPostprocessor,
   RetrievalPostprocessorResult,
 } from "../interfaces/retrieval-postprocessor.js"
 import type { PreprocessedQuery } from "../spec/preprocessed-query.js"
-import type { RuntimeContext } from "../spec/context.js"
+import type { RetrievalCandidate } from "../spec/retrieval-candidate.js"
 
 export class PassthroughRetrievalPostprocessor implements RetrievalPostprocessor {
   async postprocess(
     _query: PreprocessedQuery,
-    chunks: Chunk[],
-    _context: RuntimeContext,
+    candidates: RetrievalCandidate[],
   ): Promise<RetrievalPostprocessorResult> {
     return {
-      chunks,
+      candidates,
       promptContext: null,
     }
   }

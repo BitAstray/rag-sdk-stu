@@ -5,7 +5,7 @@ describe("RuntimeResultSchema", () => {
   it("accepts minimal result with null stages", () => {
     const result = RuntimeResultSchema.parse({
       answer: "ok",
-      chunks: [],
+      candidates: [],
       originalQuery: { query: "test" },
       preprocessed: null,
       preRetrieval: null,
@@ -21,7 +21,7 @@ describe("RuntimeResultSchema", () => {
   it("accepts fully populated result", () => {
     const result = RuntimeResultSchema.parse({
       answer: "answer",
-      chunks: [{ id: "c1", content: "hello" }],
+      candidates: [{ id: "c1", content: "hello" }],
       originalQuery: { query: "test" },
       preprocessed: {
         originalQuery: "test",
@@ -35,13 +35,16 @@ describe("RuntimeResultSchema", () => {
         durationMs: 1,
       },
       retrieval: {
-        chunks: [{ id: "c1", content: "hello" }],
+        candidates: [{ id: "c1", content: "hello" }],
         retrievedCount: 1,
         durationMs: 10,
       },
       postRetrieval: {
-        chunks: [{ id: "c1", content: "hello" }],
+        candidates: [{ id: "c1", content: "hello" }],
         promptContext: "context",
+        selectedCandidates: [{ id: "c1", content: "hello" }],
+        droppedCandidates: [],
+        selectionTrace: [],
         removedCount: 0,
         durationMs: 2,
       },
@@ -51,7 +54,7 @@ describe("RuntimeResultSchema", () => {
       },
       durationMs: 113,
     })
-    expect(result.chunks).toHaveLength(1)
+    expect(result.candidates).toHaveLength(1)
     expect(result.preRetrieval?.topK).toBe(5)
   })
 
@@ -59,7 +62,7 @@ describe("RuntimeResultSchema", () => {
     expect(() =>
       RuntimeResultSchema.parse({
         answer: null,
-        chunks: [],
+        candidates: [],
         originalQuery: { query: "test" },
         preprocessed: null,
         preRetrieval: null,

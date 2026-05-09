@@ -52,10 +52,10 @@ describe("RAG pipeline end-to-end smoke", () => {
     const result = await runtime.run({ query: "What is TypeScript?" })
 
     expect(result.answer).toBeTruthy()
-    expect(result.chunks.length).toBeGreaterThan(0)
+    expect(result.candidates.length).toBeGreaterThan(0)
     expect(result.preRetrieval).toBeDefined()
     expect(result.retrieval).toBeDefined()
-    expect(result.retrieval.chunks.length).toBeGreaterThan(0)
+    expect(result.retrieval.candidates.length).toBeGreaterThan(0)
     expect(result.postRetrieval).toBeDefined()
     expect(result.generation).toBeDefined()
     expect(result.generation.answer).toBeTruthy()

@@ -1,6 +1,5 @@
-import type { Chunk } from "@rag-sdk/core"
+import type { RetrievalCandidate } from "../spec/retrieval-candidate.js"
 import type { PreprocessedQuery } from "../spec/preprocessed-query.js"
-import type { RuntimeContext } from "../spec/context.js"
 import type { GenerationDebugData } from "../spec/debug.js"
 
 export interface RuntimeGeneratorResult {
@@ -11,8 +10,7 @@ export interface RuntimeGeneratorResult {
 export interface RuntimeGenerator {
   generate(
     query: PreprocessedQuery,
-    chunks: Chunk[],
+    candidates: RetrievalCandidate[],
     promptContext: string | null,
-    context: RuntimeContext,
   ): Promise<RuntimeGeneratorResult>
 }

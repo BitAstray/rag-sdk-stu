@@ -2,7 +2,17 @@ import { describe, it, expect } from "vitest"
 import { runRuntime } from "../../src/pipeline/run-runtime.js"
 import { RuntimeError } from "../../src/errors/runtime.js"
 import type { InternalConfig } from "../../src/pipeline/run-runtime.js"
-import type { Chunk } from "@rag-sdk/core"
+import type { RetrievalPostprocessorResult } from "../../src/interfaces/retrieval-postprocessor.js"
+
+function makePostprocessorResult(
+  candidates: Array<{ id: string; content: string }>,
+  promptContext: string | null = null,
+): RetrievalPostprocessorResult {
+  return {
+    candidates,
+    promptContext,
+  }
+}
 
 function makeConfig(overrides: Partial<InternalConfig> = {}): InternalConfig {
   return {
@@ -13,12 +23,12 @@ function makeConfig(overrides: Partial<InternalConfig> = {}): InternalConfig {
     },
     retriever: {
       async retrieve() {
-        return { chunks: [{ id: "c1", content: "hello" }] }
+        return { candidates: [{ id: "c1", content: "hello" }] }
       },
     },
     postprocessor: {
-      async postprocess(_q, chunks) {
-        return { chunks, promptContext: null }
+      async postprocess(_q, candidates) {
+        return makePostprocessorResult(candidates)
       },
     },
     generator: {
@@ -43,13 +53,13 @@ describe("runRuntime", () => {
       retriever: {
         async retrieve() {
           order.push("retrieval")
-          return { chunks: [] }
+          return { candidates: [] }
         },
       },
       postprocessor: {
-        async postprocess(_q, chunks) {
+        async postprocess(_q, candidates) {
           order.push("post-retrieval")
-          return { chunks, promptContext: null }
+          return makePostprocessorResult(candidates)
         },
       },
       generator: {
@@ -64,29 +74,29 @@ describe("runRuntime", () => {
     expect(order).toEqual(["pre-retrieval", "retrieval", "post-retrieval", "generation"])
   })
 
-  it("passes RuntimeContext through all stages", async () => {
+  it("flows data between stages correctly", async () => {
     const config = makeConfig({
       retriever: {
-        async retrieve(_input, context) {
-          expect(context.preprocessed).not.toBeNull()
-          return { chunks: [{ id: "c1", content: "test" }] }
+        async retrieve() {
+          return { candidates: [{ id: "c1", content: "test" }] }
         },
       },
       postprocessor: {
-        async postprocess(_q, chunks, context) {
-          expect(context.chunks).toHaveLength(1)
-          return { chunks, promptContext: "ctx" }
+        async postprocess(_q, candidates) {
+          return { ...makePostprocessorResult(candidates), promptContext: "ctx" }
         },
       },
       generator: {
-        async generate(_q, chunks, promptContext, context) {
-          expect(context.promptContext).toBe("ctx")
+        async generate(_q, _candidates, promptContext) {
+          expect(promptContext).toBe("ctx")
           return { answer: "ok" }
         },
       },
     })
 
-    await runRuntime({ query: "test" }, config)
+    const result = await runRuntime({ query: "test" }, config)
+    expect(result.answer).toBe("ok")
+    expect(result.postRetrieval?.promptContext).toBe("ctx")
   })
 
   it("records timing for each stage", async () => {
@@ -98,12 +108,12 @@ describe("runRuntime", () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
   })
 
-  it("returns final chunks from post-retrieval (not retrieval)", async () => {
+  it("returns final candidates from post-retrieval (not retrieval)", async () => {
     const config = makeConfig({
       retriever: {
         async retrieve() {
           return {
-            chunks: [
+            candidates: [
               { id: "c1", content: "a" },
               { id: "c2", content: "b" },
             ],
@@ -112,17 +122,16 @@ describe("runRuntime", () => {
       },
       postprocessor: {
         async postprocess() {
-          return {
-            chunks: [{ id: "c1", content: "a" }],
-            promptContext: null,
-          }
+          return makePostprocessorResult(
+            [{ id: "c1", content: "a" }],
+          )
         },
       },
     })
 
     const result = await runRuntime({ query: "test" }, config)
-    expect(result.chunks).toHaveLength(1)
-    expect(result.chunks[0].id).toBe("c1")
+    expect(result.candidates).toHaveLength(1)
+    expect(result.candidates[0].id).toBe("c1")
     expect(result.postRetrieval?.removedCount).toBe(1)
   })
 
@@ -204,16 +213,16 @@ describe("runRuntime", () => {
     expect(result.answer).toBeNull()
   })
 
-  it("works with empty chunk results", async () => {
+  it("works with empty candidate results", async () => {
     const config = makeConfig({
       retriever: {
         async retrieve() {
-          return { chunks: [] }
+          return { candidates: [] }
         },
       },
     })
     const result = await runRuntime({ query: "test" }, config)
-    expect(result.chunks).toEqual([])
+    expect(result.candidates).toEqual([])
     expect(result.retrieval?.retrievedCount).toBe(0)
   })
 })

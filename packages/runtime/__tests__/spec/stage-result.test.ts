@@ -30,26 +30,26 @@ describe("PreRetrievalResultSchema", () => {
 describe("RetrievalResultSchema", () => {
   it("accepts minimal valid input", () => {
     const result = RetrievalResultSchema.parse({
-      chunks: [],
+      candidates: [],
       retrievedCount: 0,
       durationMs: 0,
     })
-    expect(result.chunks).toEqual([])
+    expect(result.candidates).toEqual([])
   })
 
-  it("accepts chunks with metadata", () => {
+  it("accepts candidates with metadata", () => {
     const result = RetrievalResultSchema.parse({
-      chunks: [{ id: "c1", content: "hello", metadata: { source: "test" } }],
+      candidates: [{ id: "c1", content: "hello", metadata: { source: "test" } }],
       retrievedCount: 1,
       durationMs: 10,
     })
-    expect(result.chunks).toHaveLength(1)
+    expect(result.candidates).toHaveLength(1)
   })
 
   it("rejects negative retrievedCount", () => {
     expect(() =>
       RetrievalResultSchema.parse({
-        chunks: [],
+        candidates: [],
         retrievedCount: -1,
         durationMs: 0,
       }),
@@ -60,8 +60,11 @@ describe("RetrievalResultSchema", () => {
 describe("PostRetrievalResultSchema", () => {
   it("accepts minimal valid input", () => {
     const result = PostRetrievalResultSchema.parse({
-      chunks: [],
+      candidates: [],
       promptContext: null,
+      selectedCandidates: [],
+      droppedCandidates: [],
+      selectionTrace: [],
       removedCount: 0,
       durationMs: 0,
     })
@@ -70,12 +73,47 @@ describe("PostRetrievalResultSchema", () => {
 
   it("accepts with promptContext string", () => {
     const result = PostRetrievalResultSchema.parse({
-      chunks: [],
+      candidates: [],
       promptContext: "assembled context",
+      selectedCandidates: [],
+      droppedCandidates: [],
+      selectionTrace: [],
       removedCount: 0,
       durationMs: 5,
     })
     expect(result.promptContext).toBe("assembled context")
+  })
+
+  it("accepts with selection trace and dropped candidates", () => {
+    const result = PostRetrievalResultSchema.parse({
+      candidates: [{ id: "c1", content: "kept" }],
+      promptContext: null,
+      selectedCandidates: [{ id: "c1", content: "kept" }],
+      droppedCandidates: [{ id: "c2", content: "dropped" }],
+      selectionTrace: [
+        { stage: "score-threshold", action: "dropped", candidateId: "c2", reason: "score below threshold" },
+      ],
+      appliedScoreThreshold: 0.5,
+      removedCount: 1,
+      durationMs: 2,
+    })
+    expect(result.droppedCandidates).toHaveLength(1)
+    expect(result.selectionTrace).toHaveLength(1)
+    expect(result.appliedScoreThreshold).toBe(0.5)
+  })
+
+  it("accepts with appliedBudget", () => {
+    const result = PostRetrievalResultSchema.parse({
+      candidates: [],
+      promptContext: null,
+      selectedCandidates: [],
+      droppedCandidates: [],
+      selectionTrace: [],
+      appliedBudget: { maxCandidates: 10 },
+      removedCount: 0,
+      durationMs: 1,
+    })
+    expect(result.appliedBudget?.maxCandidates).toBe(10)
   })
 })
 

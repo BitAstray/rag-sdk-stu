@@ -1,6 +1,7 @@
 import { z } from "zod"
-import { ChunkSchema, QuerySchema } from "@rag-sdk/core"
+import { QuerySchema } from "@rag-sdk/core"
 import { PreprocessedQuerySchema } from "./preprocessed-query.js"
+import { RetrievalCandidateSchema } from "./retrieval-candidate.js"
 import {
   PreRetrievalResultSchema,
   RetrievalResultSchema,
@@ -10,7 +11,7 @@ import {
 
 export const RuntimeResultSchema = z.object({
   answer: z.string().nullable(),
-  chunks: z.array(ChunkSchema),
+  candidates: z.array(RetrievalCandidateSchema),
   originalQuery: QuerySchema,
   preprocessed: PreprocessedQuerySchema.nullable(),
   preRetrieval: PreRetrievalResultSchema.nullable(),

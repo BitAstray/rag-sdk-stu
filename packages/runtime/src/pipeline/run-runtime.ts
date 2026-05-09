@@ -5,7 +5,7 @@ import type { QueryPreprocessor } from "../interfaces/query-preprocessor.js"
 import type { RetrievalPostprocessor } from "../interfaces/retrieval-postprocessor.js"
 import type { RuntimeContext } from "../spec/context.js"
 import type { RuntimeResult } from "../spec/runtime-result.js"
-import { RuntimeError } from "../errors/runtime.js"
+import { wrapStageError } from "../errors/runtime.js"
 
 export interface InternalConfig {
   retriever: RuntimeRetriever
@@ -26,7 +26,7 @@ export async function runRuntime(
   const context: RuntimeContext = {
     originalQuery: query,
     preprocessed: null,
-    chunks: [],
+    candidates: [],
     promptContext: null,
     metadata: {},
   }
@@ -44,67 +44,59 @@ export async function runRuntime(
       durationMs,
     }
   } catch (cause) {
-    if (cause instanceof RuntimeError) throw cause
-    throw new RuntimeError(
-      "pre-retrieval",
-      `Pre-retrieval failed: ${cause instanceof Error ? cause.message : String(cause)}`,
-      cause,
-    )
+    throw wrapStageError("pre-retrieval", cause)
   }
 
   // Stage 2: Retrieval
   let retrievalResult
   try {
     const start = now()
-    const { chunks, debug } = await config.retriever.retrieve(
+    const { candidates, debug } = await config.retriever.retrieve(
       context.preprocessed!,
-      context,
     )
     const durationMs = now() - start
 
-    context.chunks = chunks
+    context.candidates = candidates
     context.metadata.retrievalDebug = debug
     retrievalResult = {
-      chunks,
-      retrievedCount: chunks.length,
+      candidates,
+      retrievedCount: candidates.length,
       durationMs,
     }
   } catch (cause) {
-    if (cause instanceof RuntimeError) throw cause
-    throw new RuntimeError(
-      "retrieval",
-      `Retrieval failed: ${cause instanceof Error ? cause.message : String(cause)}`,
-      cause,
-    )
+    throw wrapStageError("retrieval", cause)
   }
 
   // Stage 3: Post-retrieval
   let postRetrievalResult
   try {
     const start = now()
-    const { chunks, promptContext, debug } = await config.postprocessor.postprocess(
+    const {
+      candidates: postCandidates,
+      promptContext,
+      detail,
+    } = await config.postprocessor.postprocess(
       context.preprocessed!,
-      context.chunks,
-      context,
+      context.candidates,
     )
     const durationMs = now() - start
 
-    context.chunks = chunks
+    context.candidates = postCandidates
     context.promptContext = promptContext
-    context.metadata.postRetrievalDebug = debug
+    context.metadata.postRetrievalDebug = detail?.debug
     postRetrievalResult = {
-      chunks,
+      candidates: postCandidates,
       promptContext,
-      removedCount: retrievalResult.chunks.length - chunks.length,
+      selectedCandidates: detail?.selectedCandidates ?? postCandidates,
+      droppedCandidates: detail?.droppedCandidates ?? [],
+      selectionTrace: detail?.selectionTrace ?? [],
+      appliedScoreThreshold: detail?.appliedScoreThreshold,
+      appliedBudget: detail?.appliedBudget,
+      removedCount: retrievalResult.candidates.length - postCandidates.length,
       durationMs,
     }
   } catch (cause) {
-    if (cause instanceof RuntimeError) throw cause
-    throw new RuntimeError(
-      "post-retrieval",
-      `Post-retrieval failed: ${cause instanceof Error ? cause.message : String(cause)}`,
-      cause,
-    )
+    throw wrapStageError("post-retrieval", cause)
   }
 
   // Stage 4: Generation
@@ -113,9 +105,8 @@ export async function runRuntime(
     const start = now()
     const { answer, debug } = await config.generator.generate(
       context.preprocessed!,
-      context.chunks,
+      context.candidates,
       context.promptContext,
-      context,
     )
     const durationMs = now() - start
 
@@ -125,19 +116,14 @@ export async function runRuntime(
       durationMs,
     }
   } catch (cause) {
-    if (cause instanceof RuntimeError) throw cause
-    throw new RuntimeError(
-      "generation",
-      `Generation failed: ${cause instanceof Error ? cause.message : String(cause)}`,
-      cause,
-    )
+    throw wrapStageError("generation", cause)
   }
 
   const durationMs = now() - totalStart
 
   return {
     answer: generationResult.answer,
-    chunks: postRetrievalResult.chunks,
+    candidates: postRetrievalResult.candidates,
     originalQuery: context.originalQuery,
     preprocessed: context.preprocessed,
     preRetrieval: preRetrievalResult,
