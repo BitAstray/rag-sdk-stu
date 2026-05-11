@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import type { Document } from "@rag-sdk/core"
-import { runIndexing } from "@rag-sdk/indexing"
+import { PipelineSteps } from "@rag-sdk/indexing"
 import { createDefaultRuntime } from "@rag-sdk/runtime"
 import { buildTestPipeline } from "../helpers/rag-pipeline-builder.js"
 
@@ -13,12 +13,11 @@ describe("indexing → runtime cross-package pipeline", () => {
       { id: "doc-2", content: "RAG combines retrieval with generation" },
     ]
 
-    const indexResult = await runIndexing({
-      loader: { load: async () => docs },
-      chunker,
-      embedder,
-      store,
-    })
+    const indexResult = await PipelineSteps.fromLoader({ async load() { return docs } })
+      .pipe(PipelineSteps.chunk(chunker))
+      .pipe(PipelineSteps.embed(embedder))
+      .pipe(PipelineSteps.store(store))
+      .consume()
 
     expect(indexResult.totalDocuments).toBe(2)
     expect(indexResult.totalChunks).toBeGreaterThan(0)
@@ -43,8 +42,8 @@ describe("indexing → runtime cross-package pipeline", () => {
 
     const result = await runtime.run({ query: "TypeScript" })
 
-    expect(result.answer).toBeTruthy()
-    expect(result.retrieval.candidates.length).toBeGreaterThan(0)
+    expect(result.outputs.generator.value.answer).toBeTruthy()
+    expect(result.outputs.retriever.value.candidates.length).toBeGreaterThan(0)
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
   })
 })

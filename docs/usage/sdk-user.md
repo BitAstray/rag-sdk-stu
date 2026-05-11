@@ -46,14 +46,13 @@ console.log(result.answer)
 ### 索引数据
 
 ```ts
-import { runIndexing, SimpleChunker, MockEmbedder, MemoryVectorStore } from "@rag-sdk/indexing"
+import { PipelineSteps, SimpleChunker, MockEmbedder, MemoryVectorStore } from "@rag-sdk/indexing"
 
-const result = await runIndexing({
-  loader: { load: async () => [{ id: "doc-1", content: "文档内容" }] },
-  chunker: new SimpleChunker(),
-  embedder: new MockEmbedder(),
-  store: new MemoryVectorStore(),
-})
+const result = await PipelineSteps.fromLoader({ load: async () => [{ id: "doc-1", content: "文档内容" }] })
+  .pipe(PipelineSteps.chunk(new SimpleChunker()))
+  .pipe(PipelineSteps.embed(new MockEmbedder()))
+  .pipe(PipelineSteps.store(new MemoryVectorStore()))
+  .consume()
 ```
 
 ### 完全控制 Runtime
@@ -61,11 +60,21 @@ const result = await runIndexing({
 ```ts
 import { createRuntime } from "@rag-sdk/runtime"
 
+// 通过底层 DAG 节点组装执行拓扑
 const runtime = createRuntime({
-  retriever: myRuntimeRetriever,   // RuntimeRetriever 接口
-  generator: myRuntimeGenerator,   // RuntimeGenerator 接口
-  preprocessor: myPreprocessor,    // 可选：query 改写
-  postprocessor: myPostprocessor,  // 可选：结果过滤
+  nodes: [
+    {
+      id: "preprocessor",
+      dependencies: ["query"],
+      execute: async (inputs: any) => myPreprocessor.preprocess(inputs.query)
+    },
+    {
+      id: "retriever",
+      dependencies: ["preprocessor"],
+      execute: async (inputs: any) => myRuntimeRetriever.retrieve(inputs.preprocessor)
+    },
+    // ... 添加 postprocessor 和 generator 节点
+  ]
 })
 ```
 
@@ -99,7 +108,7 @@ const runtime = createRuntime({
 
 ### @rag-sdk/indexing
 
-- **入口**: `runIndexing`
+- **入口**: `PipelineSteps`, `IndexingStream`
 - **接口**: `Loader`, `Chunker`, `Embedder`, `VectorStore`, `DocumentTransformer`
 - **默认组件**: `SimpleChunker`, `MockEmbedder`, `MemoryVectorStore`, `MarkdownLoader`
 - **工具**: `FileSystem`

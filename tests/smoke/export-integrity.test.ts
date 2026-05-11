@@ -37,8 +37,8 @@ describe("export integrity", () => {
     })
 
     it("exports pipeline", () => {
-      expect(indexing.runIndexing).toBeDefined()
-      expect(typeof indexing.runIndexing).toBe("function")
+      expect(indexing.PipelineSteps).toBeDefined()
+      expect(typeof indexing.PipelineSteps.fromLoader).toBe("function")
     })
 
     it("exports defaults", () => {

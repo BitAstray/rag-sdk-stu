@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { mkdtemp, writeFile, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { MarkdownLoader, SimpleChunker, MockEmbedder, MemoryVectorStore, runIndexing } from "@rag-sdk/indexing"
+import { MarkdownLoader, SimpleChunker, MockEmbedder, MemoryVectorStore, PipelineSteps } from "@rag-sdk/indexing"
 import { createDefaultRuntime } from "@rag-sdk/runtime"
 import { InMemoryRetriever } from "../helpers/in-memory-retriever.js"
 
@@ -26,7 +26,11 @@ describe("RAG pipeline end-to-end smoke", () => {
     const loader = new MarkdownLoader(tempDir)
 
     // Index
-    const indexResult = await runIndexing({ loader, chunker, embedder, store })
+    const indexResult = await PipelineSteps.fromLoader(loader)
+      .pipe(PipelineSteps.chunk(chunker))
+      .pipe(PipelineSteps.embed(embedder))
+      .pipe(PipelineSteps.store(store))
+      .consume()
     expect(indexResult.totalDocuments).toBe(2)
     expect(indexResult.totalChunks).toBeGreaterThan(0)
     expect(indexResult.errors).toHaveLength(0)
@@ -51,14 +55,14 @@ describe("RAG pipeline end-to-end smoke", () => {
 
     const result = await runtime.run({ query: "What is TypeScript?" })
 
-    expect(result.answer).toBeTruthy()
-    expect(result.candidates.length).toBeGreaterThan(0)
-    expect(result.preRetrieval).toBeDefined()
-    expect(result.retrieval).toBeDefined()
-    expect(result.retrieval.candidates.length).toBeGreaterThan(0)
-    expect(result.postRetrieval).toBeDefined()
-    expect(result.generation).toBeDefined()
-    expect(result.generation.answer).toBeTruthy()
+    expect(result.outputs.generator.value.answer).toBeTruthy()
+    expect(result.outputs.postprocessor.value.candidates.length).toBeGreaterThan(0)
+    expect(result.outputs.preprocessor.value).toBeDefined()
+    expect(result.outputs.retriever.value).toBeDefined()
+    expect(result.outputs.retriever.value.candidates.length).toBeGreaterThan(0)
+    expect(result.outputs.postprocessor.value).toBeDefined()
+    expect(result.outputs.generator.value).toBeDefined()
+    expect(result.outputs.generator.value.answer).toBeTruthy()
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
   })
 })

@@ -25,30 +25,33 @@ src/
     retrieval-postprocessor.ts  RetrievalPostprocessor + RetrievalPostprocessorResult
     runtime-generator.ts        RuntimeGenerator + RuntimeGeneratorResult
   pipeline/       管线执行
-    runtime-types.ts    RuntimeConfig、Runtime 接口
+    dag.ts              有向无环图执行引擎
     create-runtime.ts   createRuntime() 工厂
-    run-runtime.ts      runRuntime() 执行器
   defaults/       默认实现
     create-default-runtime.ts   createDefaultRuntime() 便捷入口
     retriever-wrapper.ts        CoreRetrieverWrapper（core→runtime 适配）
     generator-wrapper.ts        CoreGeneratorWrapper（core→runtime 适配）
     noop-query-preprocessor.ts  空预处理器
     passthrough-postprocessor.ts 直通后处理器
+    postprocessor/              策略组合中间件
+      pipeline.ts
+      strategies.ts
+      context-ordering.ts
   errors/         RuntimeError + RuntimeStage
 __tests__/        单元测试
 ```
 
-## 管线流程
+## 管线流程 (DAG)
+
+基于 `executeDAG` 解析节点依赖并发执行：
 
 ```mermaid
 graph LR
-    Q[Query] --> P[Preprocessor]
-    P -->|PreprocessedQuery| R[Retriever]
-    R -->|Chunk[]| PP[Postprocessor]
-    PP -->|Chunk[] + promptContext| G[Generator]
+    Q[Query] --> P[Preprocessor Node]
+    P -->|PreprocessedQuery| R[Retriever Node]
+    R -->|Chunk[]| PP[Postprocessor Node]
+    P -->|PreprocessedQuery| PP
+    PP -->|Chunk[] + promptContext| G[Generator Node]
+    P -->|PreprocessedQuery| G
     G -->|answer| RES[RuntimeResult]
-
-    CTX[RuntimeContext] -.->|贯穿| R
-    CTX -.->|贯穿| PP
-    CTX -.->|贯穿| G
 ```

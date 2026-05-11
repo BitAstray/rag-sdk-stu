@@ -1,7 +1,9 @@
 import {
   createRuntime,
   createDefaultRuntime,
-  createDefaultPostprocessor,
+  createPostprocessorPipeline,
+  scoreThreshold,
+  budgetTrim,
   RuntimeError,
 } from "../src/index.js"
 import type { Chunk } from "@rag-sdk/core"
@@ -62,12 +64,10 @@ const runtimeGenerator: RuntimeGenerator = {
   },
 }
 
-const postprocessor = createDefaultPostprocessor({
-  scoreThreshold: 0.5,
-  deduplication: true,
-  maxPerSource: 1,
-  budget: { maxCandidates: 3 },
-})
+const postprocessor = createPostprocessorPipeline([
+  scoreThreshold(0.5),
+  budgetTrim({ maxCandidates: 2 })
+])
 
 const strategyRuntime = createRuntime({
   retriever: runtimeRetriever,
@@ -118,7 +118,7 @@ const customRuntime = createRuntime({
   retriever: customRetriever,
   generator: runtimeGenerator,
   preprocessor: customPreprocessor,
-  postprocessor: createDefaultPostprocessor(),
+  postprocessor: createPostprocessorPipeline([]),
 })
 
 const result3 = await customRuntime.run({ query: "  RAG  " })
@@ -135,7 +135,7 @@ const failingRuntime = createRuntime({
     },
   },
   preprocessor: customPreprocessor,
-  postprocessor: createDefaultPostprocessor(),
+  postprocessor: createPostprocessorPipeline([]),
 })
 
 try {

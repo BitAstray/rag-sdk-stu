@@ -26,12 +26,13 @@ _Avoid_: preprocessor, filter
 
 ## Relationships
 
-- **Indexing Pipeline** 执行顺序：Loader → DocumentTransformer → Chunker → Embedder → VectorStore
-- **Loader** 产出 Document[]
-- **DocumentTransformer** 输入/输出 Document[]（可选阶段）
-- **Chunker** 输入 Document[]，输出 Chunk[]
-- **Embedder** 输入 Chunk[]，输出 Vector[]
-- **VectorStore** 接收 Vector[] 并持久化
+- **Indexing Pipeline** 采用基于 **AsyncIterable** 的流式处理架构 (`IndexingStream`)
+- 使用 `PipelineSteps.fromLoader` 作为起点产出流，随后通过 `.pipe()` 接入其他步骤。
+- **Loader** 作为数据源产出 Document 流
+- **DocumentTransformer** 输入/输出 Document 流（可选过滤阶段）
+- **Chunker** 将 Document 流切分成 Chunk 流
+- **Embedder** 将 Chunk 流转换为 Vector 流
+- **VectorStore** 消费 Vector 流并持久化
 
 ## Example dialogue
 

@@ -23,7 +23,8 @@ export { MarkdownLoader } from "./loaders/markdown-loader.js"
 export type { FileSystem } from "./loaders/markdown-loader.js"
 
 // Pipeline
-export { runIndexing } from "./pipeline/run-indexing.js"
+export { IndexingStream, PipelineSteps } from "./pipeline/pipeline.js"
+export type { Transform } from "./pipeline/pipeline.js"
 
 // Defaults
 export {

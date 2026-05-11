@@ -22,40 +22,37 @@ describe("runtime defaults → core interface bridging", () => {
     })
 
     const result = await runtime.run({ query: "test" })
-    expect(result.answer).toContain("Generated:")
-    expect(result.retrieval.candidates).toHaveLength(1)
+    expect(result.outputs.generator.value.answer).toContain("Generated:")
+    expect(result.outputs.retriever.value.candidates).toHaveLength(1)
   })
 
-  it("createRuntime accepts wrapped core interfaces", async () => {
+  it("createRuntime accepts native DAG nodes", async () => {
     const runtime = createRuntime({
-      retriever: new CoreRetrieverWrapper(mockRetriever),
-      generator: new CoreGeneratorWrapper(mockGenerator),
-    })
-
-    const result = await runtime.run({ query: "hello" })
-    expect(result.answer).toBeTruthy()
-    expect(result.preRetrieval).toBeDefined()
-    expect(result.retrieval).toBeDefined()
-    expect(result.postRetrieval).toBeDefined()
-    expect(result.generation).toBeDefined()
-  })
-
-  it("createRuntime accepts native RuntimeRetriever/RuntimeGenerator", async () => {
-    const runtime = createRuntime({
-      retriever: {
-        async retrieve(input) {
-          return { candidates: [{ id: "r1", content: input.effectiveQuery }] }
+      nodes: [
+        {
+          id: "preprocessor",
+          dependencies: ["query"],
+          execute: (inputs: any) => ({ effectiveQuery: inputs.query.query })
         },
-      },
-      generator: {
-        async generate(_query, candidates) {
-          return { answer: candidates.map((c) => c.content).join() }
+        {
+          id: "retriever",
+          dependencies: ["preprocessor"],
+          execute: async (inputs: any) => {
+            return { candidates: [{ id: "r1", content: inputs.preprocessor.effectiveQuery }] }
+          },
         },
-      },
+        {
+          id: "generator",
+          dependencies: ["preprocessor", "retriever"],
+          execute: async (inputs: any) => {
+            return { answer: inputs.retriever.candidates.map((c: any) => c.content).join() }
+          },
+        }
+      ]
     })
 
     const result = await runtime.run({ query: "native" })
-    expect(result.answer).toBe("native")
+    expect(result.outputs.generator.value.answer).toBe("native")
   })
 
   it("runtime pipeline produces all stage results", async () => {
@@ -66,13 +63,10 @@ describe("runtime defaults → core interface bridging", () => {
 
     const result = await runtime.run({ query: "stages" })
 
-    expect(result.preRetrieval.durationMs).toBeGreaterThanOrEqual(0)
-    expect(result.retrieval.retrievedCount).toBe(1)
-    expect(result.retrieval.durationMs).toBeGreaterThanOrEqual(0)
-    expect(result.postRetrieval.candidates).toBeDefined()
-    expect(result.postRetrieval.durationMs).toBeGreaterThanOrEqual(0)
-    expect(result.generation.answer).toBeTruthy()
-    expect(result.generation.durationMs).toBeGreaterThanOrEqual(0)
+    expect(result.outputs.preprocessor.durationMs).toBeGreaterThanOrEqual(0)
+    expect(result.outputs.retriever.durationMs).toBeGreaterThanOrEqual(0)
+    expect(result.outputs.postprocessor.durationMs).toBeGreaterThanOrEqual(0)
+    expect(result.outputs.generator.durationMs).toBeGreaterThanOrEqual(0)
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
   })
 })

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import type { Document } from "@rag-sdk/core"
-import { SimpleChunker, MockEmbedder, MemoryVectorStore, runIndexing } from "@rag-sdk/indexing"
+import { SimpleChunker, MockEmbedder, MemoryVectorStore, PipelineSteps } from "@rag-sdk/indexing"
 
 describe("indexing stores → full storage chain", () => {
   it("chunk → embed → store chain works end-to-end", async () => {
@@ -22,18 +22,19 @@ describe("indexing stores → full storage chain", () => {
   })
 
   it("runIndexing with MemoryVectorStore stores all vectors", async () => {
+    const chunker = new SimpleChunker()
+    const embedder = new MockEmbedder()
     const store = new MemoryVectorStore()
     const docs: Document[] = [
       { id: "d1", content: "First document about AI" },
       { id: "d2", content: "Second document about databases" },
     ]
 
-    const result = await runIndexing({
-      loader: { load: async () => docs },
-      chunker: new SimpleChunker(),
-      embedder: new MockEmbedder(),
-      store,
-    })
+    const result = await PipelineSteps.fromLoader({ async load() { return docs } })
+      .pipe(PipelineSteps.chunk(chunker))
+      .pipe(PipelineSteps.embed(embedder))
+      .pipe(PipelineSteps.store(store))
+      .consume()
 
     expect(result.totalDocuments).toBe(2)
     expect(result.errors).toHaveLength(0)

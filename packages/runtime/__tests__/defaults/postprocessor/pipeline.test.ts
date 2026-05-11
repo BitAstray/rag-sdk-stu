@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest"
-import { createDefaultPostprocessor } from "../../../src/defaults/postprocessor/create-default-postprocessor.js"
+import { createPostprocessorPipeline } from "../../../src/defaults/postprocessor/pipeline.js"
+import {
+  scoreThreshold,
+  budgetTrim,
+  predicateFilter,
+  nearDuplicateRemoval,
+  sourceCoverage
+} from "../../../src/defaults/postprocessor/strategies.js"
+import { contextOrdering } from "../../../src/defaults/postprocessor/context-ordering.js"
 import type { RetrievalCandidate } from "../../../src/spec/retrieval-candidate.js"
 
 function makeCandidates(): RetrievalCandidate[] {
@@ -12,9 +20,9 @@ function makeCandidates(): RetrievalCandidate[] {
 
 const query = { originalQuery: "test", effectiveQuery: "test" }
 
-describe("createDefaultPostprocessor", () => {
+describe("createPostprocessorPipeline", () => {
   it("passes through with no config", async () => {
-    const pp = createDefaultPostprocessor()
+    const pp = createPostprocessorPipeline([contextOrdering()])
     const result = await pp.postprocess(query, makeCandidates())
 
     expect(result.candidates).toHaveLength(3)
@@ -25,7 +33,7 @@ describe("createDefaultPostprocessor", () => {
   })
 
   it("applies score threshold", async () => {
-    const pp = createDefaultPostprocessor({ scoreThreshold: 0.6 })
+    const pp = createPostprocessorPipeline([scoreThreshold(0.6)])
     const result = await pp.postprocess(query, makeCandidates())
 
     expect(result.candidates).toHaveLength(1)
@@ -35,7 +43,7 @@ describe("createDefaultPostprocessor", () => {
   })
 
   it("applies budget", async () => {
-    const pp = createDefaultPostprocessor({ budget: { maxCandidates: 2 } })
+    const pp = createPostprocessorPipeline([budgetTrim({ maxCandidates: 2 })])
     const result = await pp.postprocess(query, makeCandidates())
 
     expect(result.candidates).toHaveLength(2)
@@ -49,7 +57,7 @@ describe("createDefaultPostprocessor", () => {
       { id: "c2", content: "same" },
       { id: "c3", content: "different" },
     ]
-    const pp = createDefaultPostprocessor({ deduplication: true })
+    const pp = createPostprocessorPipeline([nearDuplicateRemoval()])
     const result = await pp.postprocess(query, candidates)
 
     expect(result.candidates).toHaveLength(2)
@@ -57,7 +65,7 @@ describe("createDefaultPostprocessor", () => {
   })
 
   it("applies source coverage", async () => {
-    const pp = createDefaultPostprocessor({ maxPerSource: 1 })
+    const pp = createPostprocessorPipeline([sourceCoverage(1)])
     const result = await pp.postprocess(query, makeCandidates())
 
     expect(result.candidates).toHaveLength(2)
@@ -65,11 +73,9 @@ describe("createDefaultPostprocessor", () => {
   })
 
   it("applies custom predicate", async () => {
-    const pp = createDefaultPostprocessor({
-      predicates: [
-        ({ candidate }) => (candidate.rerankingScore ?? 0) > 0.4,
-      ],
-    })
+    const pp = createPostprocessorPipeline([
+      predicateFilter(async ({ candidate }) => (candidate.rerankingScore ?? 0) > 0.4),
+    ])
     const result = await pp.postprocess(query, makeCandidates())
 
     expect(result.candidates).toHaveLength(2)
@@ -77,20 +83,20 @@ describe("createDefaultPostprocessor", () => {
   })
 
   it("applies context ordering", async () => {
-    const pp = createDefaultPostprocessor({
-      orderCandidates: (a, b) => (b.rerankingScore ?? 0) - (a.rerankingScore ?? 0),
-    })
+    const pp = createPostprocessorPipeline([
+      contextOrdering((a, b) => (b.rerankingScore ?? 0) - (a.rerankingScore ?? 0)),
+    ])
     const result = await pp.postprocess(query, makeCandidates())
 
     expect(result.candidates.map(c => c.id)).toEqual(["c1", "c2", "c3"])
   })
 
   it("combines multiple strategies", async () => {
-    const pp = createDefaultPostprocessor({
-      scoreThreshold: 0.4,
-      maxPerSource: 1,
-      budget: { maxCandidates: 1 },
-    })
+    const pp = createPostprocessorPipeline([
+      scoreThreshold(0.4),
+      sourceCoverage(1),
+      budgetTrim({ maxCandidates: 1 }),
+    ])
     const result = await pp.postprocess(query, makeCandidates())
 
     expect(result.candidates).toHaveLength(1)

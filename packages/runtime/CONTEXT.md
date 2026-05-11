@@ -13,7 +13,7 @@ _Avoid_: query rewriter
 _Avoid_: searcher, finder
 
 **Postprocessor** (RetrievalPostprocessor):
-对检索结果进行后处理的统一入口，内部包含 filtering、ranking、budget trim、context assembly 等策略件。对外不拆分为独立阶段。可附加 **SelectionDetail** 供调试。
+对检索结果进行后处理的统一入口。通过 `createPostprocessorPipeline` 将一系列 `PostprocessorStep`（filtering、ranking、budget trim 等）串联成独立的可组合策略中间件。可附加 **SelectionDetail** 供调试。
 _Avoid_: reranker, context manager
 
 **Generator** (RuntimeGenerator):
@@ -38,12 +38,13 @@ _Avoid_: filter log, decision record
 
 ## Relationships
 
-- **RAG Pipeline** 执行顺序：Preprocessor → Retriever → Postprocessor → Generator
+- **RAG Pipeline** 核心执行引擎是一个通用的 **DAG (有向无环图)**，通过 `executeDAG` 解析节点依赖并发执行。
+- 默认的运行时管线依次包含节点：Preprocessor → Retriever → Postprocessor → Generator
 - **Preprocessor** 输出 PreprocessedQuery，传给 Retriever
 - **Retriever** 输出 RetrievalCandidate[]（携带 RelevanceScore），传给 Postprocessor
-- **Postprocessor** 内部执行 filtering → ranking → selection → context assembly，输出 candidates + promptContext + 可选 SelectionDetail
+- **Postprocessor** 内部是一系列中间件步骤，执行 filtering → ranking → selection → context assembly，输出 candidates + promptContext + 可选 SelectionDetail
 - **Generator** 结合 Query + candidates + promptContext 生成 RAGResponse
-- 各阶段接口不接收 RuntimeContext——管线状态由 runRuntime 内部管理
+- 各阶段不再隐式依赖单体 Context，管线状态由 **DAG** 的依赖图传递。
 
 ## Example dialogue
 

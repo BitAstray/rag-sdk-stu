@@ -1,25 +1,30 @@
 import type { RetrievalCandidate } from "../../spec/retrieval-candidate.js"
-import type { SelectionTraceItem } from "../../spec/selection-trace.js"
+import type { PostprocessorStep } from "./pipeline.js"
 
-export function applyContextOrdering(
-  candidates: RetrievalCandidate[],
-  comparator: ((a: RetrievalCandidate, b: RetrievalCandidate) => number) | undefined,
-  trace: SelectionTraceItem[],
-): RetrievalCandidate[] {
-  if (candidates.length <= 1) return candidates
+export function contextOrdering(
+  comparator?: (a: RetrievalCandidate, b: RetrievalCandidate) => number
+): PostprocessorStep {
+  return (context) => {
+    if (context.candidates.length <= 1) return context
 
-  const sorted = comparator
-    ? [...candidates].sort(comparator)
-    : [...candidates]
+    const trace = [...context.trace]
+    const sorted = comparator
+      ? [...context.candidates].sort(comparator)
+      : [...context.candidates]
 
-  for (let i = 0; i < sorted.length; i++) {
-    trace.push({
-      stage: "context-ordering",
-      action: "reordered",
-      candidateId: sorted[i].id,
-      metadata: { position: i },
-    })
+    for (let i = 0; i < sorted.length; i++) {
+      trace.push({
+        stage: "context-ordering",
+        action: "reordered",
+        candidateId: sorted[i].id,
+        metadata: { position: i },
+      })
+    }
+
+    return {
+      ...context,
+      candidates: sorted,
+      trace,
+    }
   }
-
-  return sorted
 }

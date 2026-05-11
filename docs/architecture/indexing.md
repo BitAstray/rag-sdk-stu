@@ -33,20 +33,21 @@ src/
   transformers/   文档转换器
     index.ts
   pipeline/       管线执行
-    run-indexing.ts     runIndexing() 编排器
+    pipeline.ts         PipelineSteps 与 IndexingStream (流式管线引擎)
   defaults/       默认常量
     index.ts      DEFAULT_CHUNK_SIZE、DEFAULT_OVERLAP 等
   index.ts        公共 API 导出
 __tests__/        单元测试
 ```
 
-## 管线流程
+## 管线流程 (AsyncIterable Stream)
+
+基于流的声明式组装管线，支持批处理与背压机制。
 
 ```mermaid
 graph LR
-    D[文档源] --> L[Loader]
-    L -->|Document[]| T[Transformer]
-    T -->|Document[]| C[Chunker]
-    C -->|Chunk[]| E[Embedder]
-    E -->|Vector[]| S[VectorStore]
+    D[Loader] -->|Document 流| T[Transformer .pipe]
+    T -->|Document 流| C[Chunker .pipe]
+    C -->|Chunk 流| E[Embedder .pipe]
+    E -->|Vector 流| S[VectorStore .pipe]
 ```

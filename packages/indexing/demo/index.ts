@@ -6,7 +6,7 @@ import {
   SimpleChunker,
   MockEmbedder,
   MemoryVectorStore,
-  runIndexing,
+  PipelineSteps,
 } from "../src/index.js"
 
 console.log("=== @rag-sdk/indexing Demo ===\n")
@@ -20,16 +20,11 @@ writeFileSync(join(dir, "vector-db.md"), `# 向量数据库\n\n向量数据库�
 try {
   const store = new MemoryVectorStore()
 
-  const result = await runIndexing({
-    loader: new MarkdownLoader(dir),
-    chunker: new SimpleChunker({ chunkSize: 50, overlap: 10 }),
-    embedder: new MockEmbedder({ dimension: 32 }),
-    store,
-    metadataBuilder: (doc, chunk) => ({
-      sourceDoc: doc.id,
-      indexedAt: new Date().toISOString(),
-    }),
-  })
+  const result = await PipelineSteps.fromLoader(loader)
+    .pipe(PipelineSteps.chunk(chunker))
+    .pipe(PipelineSteps.embed(embedder))
+    .pipe(PipelineSteps.store(store))
+    .consume()
 
   console.log("--- Indexing Result ---")
   console.log(`Documents processed: ${result.totalDocuments}`)
