@@ -16,8 +16,11 @@ RAG SDK monorepo，7 个包各有独立的领域上下文。本文档面向 AI�
 
 - **Core → (所有包)**: Core 定义共享类型（Document, Chunk, Vector, Query, RAGResponse），其他包依赖这些类型
 - **Indexing → Core**: 使用 Core 的数据类型，定义索引阶段接口（VectorStore, Embedder, Chunker, Loader）
+- **Indexing → Observability**: 可选依赖，通过 Observer 接口实现链路观测
 - **Runtime → Core**: 使用 Core 的数据类型，定义运行时接口（Retriever, Generator, Reranker）
+- **Runtime → Observability**: 可选依赖，通过 Observer 接口实现链路观测
 - **Adapters → Indexing + Runtime**: 实现 Indexing 和 Runtime 定义的接口
-- **Observability → Core**: 仅依赖 Core 的类型，作为横切关注点被其他包引用
+- **Observability → Core**: 依赖 Core 的 JsonValue 类型，作为 RAG 链路观测与诊断层，提供 Observer、Exporter、Redaction、Sampling 能力
 - **Eval → Runtime**: 依赖 Runtime 的管线执行能力进行评估
+- **Eval → Observability**: 依赖 Observability 的 trace 数据结构，用于从 trace 中提取 eval 样本
 - **Utils → (所有包)**: 提供通用工具，被所有包引用

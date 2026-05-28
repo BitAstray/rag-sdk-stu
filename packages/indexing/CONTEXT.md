@@ -33,8 +33,12 @@ _Avoid_: preprocessor, filter
 - **Chunker** 将 Document 流切分成 Chunk 流
 - **Embedder** 将 Chunk 流转换为 Vector 流
 - **VectorStore** 消费 Vector 流并持久化
+- **Observer** 可选接入，在 pipeline 完成时发射事件，实现链路观测
 
 ## Example dialogue
 
 > **Dev:** "**Loader** 从 Markdown 文件读取内容生成 **Document**，然后 **Chunker** 按段落切分成 **Chunk**。"
 > **Domain expert:** "切分后需要 **Embedder** 调用嵌入模型生成 **Vector**，最后写入 **VectorStore**。"
+
+> **Dev:** "我给 indexing 传了一个 **Observer**，现在能看到加载和存储的耗时了。"
+> **Domain expert:** "对，**Observer** 会在 `fromLoader` 完成时发射 `indexing.load.complete`，在 `consume` 完成时发射 `indexing.run.complete`，你可以用这些事件来分析性能瓶颈。"

@@ -7,7 +7,8 @@
       "Bash(git commit *)",
       "Bash(npx tsgo *)",
       "Bash(npx vitest *)",
-      "Bash(pnpm *)"
+      "Bash(pnpm *)",
+      "Bash(npx tsx *)"
     ]
   }
 }

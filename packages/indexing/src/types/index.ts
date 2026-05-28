@@ -1,9 +1,11 @@
 import type { Chunk, Document, Vector } from "@rag-sdk/core"
+import type { RAGObserver } from "@rag-sdk/observability"
 
 export interface IndexingResult {
   totalDocuments: number
   totalChunks: number
   errors: Error[]
+  traceId?: string
 }
 
 export interface IndexingContext {
@@ -20,6 +22,13 @@ export interface IndexingOptions {
   shouldIndex?: (doc: Document, context: IndexingContext) => boolean
   metadataBuilder?: (doc: Document, chunk: Chunk, context: IndexingContext) => Record<string, string | number | boolean | string[] | null>
   onError?: (error: Error, doc: Document | undefined, context: IndexingContext) => void
+  observer?: RAGObserver
+  trace?: {
+    traceId?: string
+    dataset?: string
+    version?: string
+    tags?: Record<string, string | number | boolean>
+  }
 }
 
 export interface Loader {
