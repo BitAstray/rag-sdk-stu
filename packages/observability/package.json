@@ -12,7 +12,8 @@
     }
   },
   "dependencies": {
-    "@rag-sdk/core": "workspace:*"
+    "@rag-sdk/core": "workspace:*",
+    "@rag-sdk/utils": "workspace:*"
   },
   "devDependencies": {},
   "scripts": {}
