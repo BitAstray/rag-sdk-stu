@@ -1,53 +1,26 @@
 import type { RAGObserver } from "@rag-sdk/observability"
-import { createTimestamp, createId } from "@rag-sdk/utils"
+import { createId } from "@rag-sdk/utils"
 import { emitEvent, emitError, createEmitContext } from "../observer/emit.js"
 
 export interface DAGNode<Inputs = Record<string, any>, Output = any> {
   id: string
   dependencies: string[]
   execute: (inputs: Inputs) => Promise<Output> | Output
+  telemetry?: {
+    stage: string
+    events: {
+      start: string
+      complete: string
+      fail: string
+    }
+    extractMetrics?: (output: Output) => Record<string, unknown>
+  }
 }
 
 export interface DAGExecutionResult {
   outputs: Record<string, any>
   durationMs: number
   traceId?: string
-}
-
-/**
- * DAG 节点 ID 到 runtime 事件阶段的映射
- */
-const NODE_STAGE_MAP: Record<string, string> = {
-  preprocessor: "query",
-  retriever: "retrieval",
-  postprocessor: "post_retrieval",
-  generator: "generation",
-}
-
-/**
- * DAG 节点 ID 到 runtime 事件名的映射
- */
-const NODE_EVENT_MAP: Record<string, { start: string; complete: string; fail: string }> = {
-  preprocessor: {
-    start: "runtime.query.receive",
-    complete: "runtime.query.preprocess",
-    fail: "runtime.run.fail",
-  },
-  retriever: {
-    start: "runtime.retrieval.start",
-    complete: "runtime.retrieval.complete",
-    fail: "runtime.retrieval.fail",
-  },
-  postprocessor: {
-    start: "runtime.post_retrieval.start",
-    complete: "runtime.post_retrieval.select",
-    fail: "runtime.post_retrieval.fail",
-  },
-  generator: {
-    start: "runtime.generation.start",
-    complete: "runtime.generation.complete",
-    fail: "runtime.generation.fail",
-  },
 }
 
 export async function executeDAG(
@@ -66,6 +39,9 @@ export async function executeDAG(
 
   // 生成 traceId
   const traceId = providedTraceId || createId("trace")
+
+  // 启动 trace 闭包
+  const traceHandle = observer?.startTrace?.(traceId, "runtime")
 
   // 创建 emit context
   const ctx = createEmitContext(traceId, observer)
@@ -106,12 +82,12 @@ export async function executeDAG(
           inputs[node.dependencies[i]] = depResults[i]
         }
 
-        const stage = NODE_STAGE_MAP[id]
-        const events = NODE_EVENT_MAP[id]
+        const stage = node.telemetry?.stage
+        const events = node.telemetry?.events
 
         // 发射开始事件
         if (stage && events) {
-          emitEvent(ctx, stage, events.start as any)
+          emitEvent(ctx, stage as any, events.start as any)
         }
 
         const startNode = performance.now()
@@ -126,9 +102,9 @@ export async function executeDAG(
 
           // 发射完成事件
           if (stage && events) {
-            emitEvent(ctx, stage, events.complete as any, {
+            emitEvent(ctx, stage as any, events.complete as any, {
               nodeId: id,
-              ...extractNodeOutput(id, output),
+              ...(node.telemetry?.extractMetrics ? node.telemetry.extractMetrics(output) : {}),
             }, durationMs)
           }
 
@@ -138,7 +114,7 @@ export async function executeDAG(
 
           // 发射失败事件
           if (stage && events) {
-            emitError(ctx, stage, events.fail as any, err as Error, {
+            emitError(ctx, stage as any, events.fail as any, err as Error, {
               nodeId: id,
               durationMs,
             })
@@ -167,6 +143,8 @@ export async function executeDAG(
       nodeCount: nodes.length,
     }, durationMs)
 
+    traceHandle?.end("ok")
+
     return {
       outputs,
       durationMs,
@@ -182,34 +160,8 @@ export async function executeDAG(
       durationMs,
     })
 
+    traceHandle?.end("error")
+
     throw err
-  }
-}
-
-/**
- * 从节点输出中提取可观测字段
- */
-function extractNodeOutput(nodeId: string, output: any): Record<string, unknown> {
-  if (!output || typeof output !== "object") return {}
-
-  switch (nodeId) {
-    case "retriever":
-      return {
-        candidateCount: output.candidates?.length ?? 0,
-        retrievedCount: output.retrievedCount,
-      }
-    case "postprocessor":
-      return {
-        selectedCount: output.selectedCandidates?.length ?? 0,
-        droppedCount: output.droppedCandidates?.length ?? 0,
-        removedCount: output.removedCount,
-        appliedScoreThreshold: output.appliedScoreThreshold,
-      }
-    case "generator":
-      return {
-        answerLength: output.answer?.length ?? 0,
-      }
-    default:
-      return {}
   }
 }

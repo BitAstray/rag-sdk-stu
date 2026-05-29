@@ -25,6 +25,14 @@ export function createDefaultRuntime(config: CreateDefaultRuntimeConfig): Runtim
       {
         id: "preprocessor",
         dependencies: ["query"],
+        telemetry: {
+          stage: "query",
+          events: {
+            start: "runtime.query.receive",
+            complete: "runtime.query.preprocess",
+            fail: "runtime.run.fail"
+          }
+        },
         execute: async (inputs: Record<string, any>) => {
           return preprocessor.preprocess(inputs.query)
         }
@@ -32,6 +40,18 @@ export function createDefaultRuntime(config: CreateDefaultRuntimeConfig): Runtim
       {
         id: "retriever",
         dependencies: ["preprocessor"],
+        telemetry: {
+          stage: "retrieval",
+          events: {
+            start: "runtime.retrieval.start",
+            complete: "runtime.retrieval.complete",
+            fail: "runtime.retrieval.fail"
+          },
+          extractMetrics: (output: any) => ({
+            candidateCount: output.candidates?.length ?? 0,
+            retrievedCount: output.retrievedCount
+          })
+        },
         execute: async (inputs: Record<string, any>) => {
           return retriever.retrieve(inputs.preprocessor)
         }
@@ -39,6 +59,20 @@ export function createDefaultRuntime(config: CreateDefaultRuntimeConfig): Runtim
       {
         id: "postprocessor",
         dependencies: ["preprocessor", "retriever"],
+        telemetry: {
+          stage: "post_retrieval",
+          events: {
+            start: "runtime.post_retrieval.start",
+            complete: "runtime.post_retrieval.select",
+            fail: "runtime.post_retrieval.fail"
+          },
+          extractMetrics: (output: any) => ({
+            selectedCount: output.selectedCandidates?.length ?? 0,
+            droppedCount: output.droppedCandidates?.length ?? 0,
+            removedCount: output.removedCount,
+            appliedScoreThreshold: output.appliedScoreThreshold
+          })
+        },
         execute: async (inputs: Record<string, any>) => {
           return postprocessor.postprocess(inputs.preprocessor, inputs.retriever.candidates)
         }
@@ -46,6 +80,17 @@ export function createDefaultRuntime(config: CreateDefaultRuntimeConfig): Runtim
       {
         id: "generator",
         dependencies: ["preprocessor", "postprocessor"],
+        telemetry: {
+          stage: "generation",
+          events: {
+            start: "runtime.generation.start",
+            complete: "runtime.generation.complete",
+            fail: "runtime.generation.fail"
+          },
+          extractMetrics: (output: any) => ({
+            answerLength: output.answer?.length ?? 0
+          })
+        },
         execute: async (inputs: Record<string, any>) => {
           return generator.generate(inputs.preprocessor, inputs.postprocessor.candidates, inputs.postprocessor.promptContext)
         }

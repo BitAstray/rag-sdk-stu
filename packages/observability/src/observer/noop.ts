@@ -6,5 +6,9 @@ import type { RAGObserver } from "../types/observer.js"
  * 空实现，不执行任何操作
  */
 export function createNoopObserver(): RAGObserver {
-  return {}
+  return {
+    startTrace() {
+      return { end: () => {} }
+    }
+  }
 }

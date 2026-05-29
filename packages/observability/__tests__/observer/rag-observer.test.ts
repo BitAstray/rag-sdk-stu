@@ -17,6 +17,7 @@ describe('createRAGObserver', () => {
     const observer = createRAGObserver()
 
     expect(observer).toBeDefined()
+    expect(observer.startTrace).toBeTypeOf('function')
     expect(observer.onEvent).toBeTypeOf('function')
     expect(observer.onError).toBeTypeOf('function')
     expect(observer.onTraceEnd).toBeTypeOf('function')
@@ -28,21 +29,28 @@ describe('createRAGObserver', () => {
     const exporter: TraceExporter = { export: vi.fn() }
     const observer = createRAGObserver({ exporters: [exporter] })
 
-    observer.onEvent?.(createMockEvent('retrieval.start'))
-    observer.onEvent?.(createMockEvent('retrieval.complete'))
+    const handle = observer.startTrace!('trace-1', 'runtime')
+
+    observer.onEvent?.(createMockEvent('runtime.retrieval.start'))
+    observer.onEvent?.(createMockEvent('runtime.retrieval.complete'))
 
     expect(exporter.export).not.toHaveBeenCalled()
 
-    observer.onEvent?.(createMockEvent('runtime.run.complete'))
+    handle.end('ok')
 
     expect(exporter.export).toHaveBeenCalled()
+    const exportedTrace = vi.mocked(exporter.export).mock.calls[0][0]
+    expect(exportedTrace.status).toBe('ok')
   })
 
   it('应在 run.fail 时标记 trace 为错误', () => {
     const exporter: TraceExporter = { export: vi.fn() }
     const observer = createRAGObserver({ exporters: [exporter] })
 
+    const handle = observer.startTrace!('trace-1', 'runtime')
     observer.onEvent?.(createMockEvent('runtime.run.fail'))
+
+    handle.end('error')
 
     expect(exporter.export).toHaveBeenCalled()
     const exportedTrace = vi.mocked(exporter.export).mock.calls[0][0]
@@ -58,7 +66,9 @@ describe('createRAGObserver', () => {
       sampling: { rate: 0.01 },
     })
 
+    const handle = observer.startTrace!('trace-1', 'runtime')
     observer.onEvent?.(createMockEvent('runtime.run.complete'))
+    handle.end('ok')
 
     expect(exporter.export).not.toHaveBeenCalled()
 
@@ -72,11 +82,14 @@ describe('createRAGObserver', () => {
       redact: { fields: ['password'] },
     })
 
-    observer.onEvent?.(createMockEvent('retrieval.start'))
+    const handle = observer.startTrace!('trace-1', 'runtime')
+    observer.onEvent?.(createMockEvent('runtime.retrieval.start'))
     observer.onEvent?.({
       ...createMockEvent('runtime.run.complete'),
       attributes: { password: 'secret' },
     })
+    
+    handle.end('ok')
 
     const exportedTrace = vi.mocked(exporter.export).mock.calls[0][0]
     expect(exportedTrace.events[1].attributes?.password).toBe('[REDACTED]')
@@ -87,7 +100,9 @@ describe('createRAGObserver', () => {
     const exporter2: TraceExporter = { export: vi.fn() }
     const observer = createRAGObserver({ exporters: [exporter1, exporter2] })
 
+    const handle = observer.startTrace!('trace-1', 'runtime')
     observer.onEvent?.(createMockEvent('runtime.run.complete'))
+    handle.end('ok')
 
     expect(exporter1.export).toHaveBeenCalled()
     expect(exporter2.export).toHaveBeenCalled()
@@ -116,7 +131,8 @@ describe('createRAGObserver', () => {
     const exporter: TraceExporter = { export: vi.fn(), shutdown: vi.fn() }
     const observer = createRAGObserver({ exporters: [exporter] })
 
-    observer.onEvent?.(createMockEvent('retrieval.start'))
+    observer.startTrace!('trace-1', 'runtime')
+    observer.onEvent?.(createMockEvent('runtime.retrieval.start'))
 
     await observer.shutdown?.()
 
@@ -137,10 +153,13 @@ describe('createRAGObserver', () => {
     const exporter: TraceExporter = { export: vi.fn() }
     const observer = createRAGObserver({ exporters: [exporter] })
 
+    const handle = observer.startTrace!('trace-1', 'indexing')
     observer.onEvent?.({
       ...createMockEvent('indexing.run.complete'),
       scope: 'indexing',
     })
+    
+    handle.end('ok')
 
     const exportedTrace = vi.mocked(exporter.export).mock.calls[0][0]
     expect(exportedTrace.scope).toBe('indexing')

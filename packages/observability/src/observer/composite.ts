@@ -1,4 +1,4 @@
-import type { RAGObserver } from "../types/observer.js"
+import type { RAGObserver, TraceHandle } from "../types/observer.js"
 
 /**
  * Composite Observer
@@ -7,6 +7,19 @@ import type { RAGObserver } from "../types/observer.js"
  */
 export function createCompositeObserver(observers: RAGObserver[]): RAGObserver {
   return {
+    startTrace(traceId, scope) {
+      const handles = observers
+        .map(o => o.startTrace?.(traceId, scope))
+        .filter((h): h is TraceHandle => h !== undefined)
+      
+      return {
+        end: (status) => {
+          for (const handle of handles) {
+            handle.end(status)
+          }
+        }
+      }
+    },
     onEvent(event) {
       for (const observer of observers) {
         observer.onEvent?.(event)

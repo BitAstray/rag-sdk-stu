@@ -2,6 +2,10 @@ import type { RAGEvent } from "./event.js"
 import type { RAGErrorRecord } from "./error.js"
 import type { RAGTrace } from "./trace.js"
 
+export interface TraceHandle {
+  end: (status: "ok" | "error") => void
+}
+
 /**
  * RAG Observer 接口
  *
@@ -13,6 +17,7 @@ import type { RAGTrace } from "./trace.js"
  * - shutdown() 由调用方负责调用，用于释放资源
  */
 export interface RAGObserver {
+  startTrace?(traceId: string, scope: "runtime" | "indexing" | "eval"): TraceHandle
   onEvent?(event: RAGEvent): void | Promise<void>
   onError?(error: RAGErrorRecord): void | Promise<void>
   onTraceEnd?(trace: RAGTrace): void | Promise<void>

@@ -2,14 +2,9 @@ import { describe, it, expect, vi } from "vitest"
 import {
   createRAGObserver,
   createCompositeObserver,
-  createConsoleObserver,
-  createNoopObserver,
-  createRedactionMiddleware,
-  createSamplingMiddleware,
   createMemoryTraceExporter,
-  createConsoleExporter,
 } from "@rag-sdk/observability"
-import type { RAGEvent, RAGTrace, TraceExporter } from "@rag-sdk/observability"
+import type { RAGEvent, TraceExporter } from "@rag-sdk/observability"
 
 describe("observability integration", () => {
   const createMockEvent = (name: string, traceId = "trace-1"): RAGEvent => ({
@@ -26,11 +21,15 @@ describe("observability integration", () => {
       exporters: [exporter],
     })
 
+    const handle = observer.startTrace!("trace-1", "runtime")
+
     // 模拟 runtime 事件流
     observer.onEvent?.(createMockEvent("runtime.query.receive"))
     observer.onEvent?.(createMockEvent("runtime.retrieval.start"))
     observer.onEvent?.(createMockEvent("runtime.retrieval.complete"))
     observer.onEvent?.(createMockEvent("runtime.run.complete"))
+    
+    handle.end("ok")
 
     const traces = exporter.getTraces()
     expect(traces).toHaveLength(1)
@@ -44,6 +43,8 @@ describe("observability integration", () => {
       exporters: [exporter],
     })
 
+    const handle = observer.startTrace!("trace-1", "runtime")
+
     observer.onEvent?.(createMockEvent("runtime.retrieval.start"))
     observer.onError?.({
       name: "retrieval.error",
@@ -54,6 +55,8 @@ describe("observability integration", () => {
       error: { message: "Retrieval failed" },
     })
     observer.onEvent?.(createMockEvent("runtime.run.fail"))
+
+    handle.end("error")
 
     const traces = exporter.getTraces()
     expect(traces).toHaveLength(1)
@@ -69,7 +72,9 @@ describe("observability integration", () => {
 
     const composite = createCompositeObserver([observer1, observer2])
 
+    const handle = composite.startTrace!("trace-1", "runtime")
     composite.onEvent?.(createMockEvent("runtime.run.complete"))
+    handle.end("ok")
 
     expect(exporter1.getTraces()).toHaveLength(1)
     expect(exporter2.getTraces()).toHaveLength(1)
@@ -85,6 +90,8 @@ describe("observability integration", () => {
       },
     })
 
+    const handle = observer.startTrace!("trace-1", "runtime")
+
     observer.onEvent?.({
       ...createMockEvent("runtime.retrieval.start"),
       attributes: {
@@ -94,6 +101,8 @@ describe("observability integration", () => {
       },
     })
     observer.onEvent?.(createMockEvent("runtime.run.complete"))
+    
+    handle.end("ok")
 
     const traces = exporter.getTraces()
     const event = traces[0].events[0]
@@ -112,8 +121,9 @@ describe("observability integration", () => {
       sampling: { rate: 0.01 },
     })
 
-    // 非错误 trace 应被采样掉
+    const handle = observer.startTrace!("trace-1", "runtime")
     observer.onEvent?.(createMockEvent("runtime.run.complete"))
+    handle.end("ok")
 
     expect(exporter.getTraces()).toHaveLength(0)
 
@@ -129,7 +139,9 @@ describe("observability integration", () => {
       sampling: { rate: 0.01, alwaysSampleOnError: true },
     })
 
+    const handle = observer.startTrace!("trace-1", "runtime")
     observer.onEvent?.(createMockEvent("runtime.run.fail"))
+    handle.end("error")
 
     expect(exporter.getTraces()).toHaveLength(1)
 
@@ -143,7 +155,9 @@ describe("observability integration", () => {
       exporters: [exporter1, exporter2],
     })
 
+    const handle = observer.startTrace!("trace-1", "runtime")
     observer.onEvent?.(createMockEvent("runtime.run.complete"))
+    handle.end("ok")
 
     expect(exporter1.getTraces()).toHaveLength(1)
     expect(exporter2.getTraces()).toHaveLength(1)
@@ -163,7 +177,9 @@ describe("observability integration", () => {
       onError: errorCallback,
     })
 
+    const handle = observer.startTrace!("trace-1", "runtime")
     observer.onEvent?.(createMockEvent("runtime.run.complete"))
+    handle.end("ok")
 
     // 错误被捕获，successExporter 仍然执行
     expect(errorCallback).toHaveBeenCalled()
@@ -174,6 +190,7 @@ describe("observability integration", () => {
     const exporter = createMemoryTraceExporter()
     const observer = createRAGObserver({ exporters: [exporter] })
 
+    const handle = observer.startTrace!("trace-1", "indexing")
     observer.onEvent?.({
       ...createMockEvent("indexing.load.start"),
       scope: "indexing",
@@ -184,6 +201,8 @@ describe("observability integration", () => {
       scope: "indexing",
       stage: "run",
     })
+    
+    handle.end("ok")
 
     const traces = exporter.getTraces()
     expect(traces).toHaveLength(1)
@@ -194,6 +213,7 @@ describe("observability integration", () => {
     const exporter = createMemoryTraceExporter()
     const observer = createRAGObserver({ exporters: [exporter] })
 
+    observer.startTrace!("trace-1", "runtime")
     observer.onEvent?.(createMockEvent("runtime.retrieval.start"))
 
     await observer.shutdown?.()

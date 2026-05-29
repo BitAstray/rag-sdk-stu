@@ -1,4 +1,4 @@
-import type { RAGObserver } from "../types/observer.js"
+import type { RAGObserver, TraceHandle } from "../types/observer.js"
 import type { RAGEvent } from "../types/event.js"
 import type { RAGErrorRecord } from "../types/error.js"
 import type { RAGTrace } from "../types/trace.js"
@@ -23,7 +23,7 @@ export interface RAGObserverOptions {
  */
 interface TraceState {
   traceId: string
-  scope: "runtime" | "indexing"
+  scope: string
   startedAt: string
   events: RAGEvent[]
   errors: RAGErrorRecord[]
@@ -37,7 +37,7 @@ interface TraceState {
  * 组合 Redaction、Sampling 与 Exporters
  * Observer 内部管理 Trace 生命周期：
  * - 接收到第一个事件时创建 Trace
- * - 接收到 run.complete 或 run.fail 事件时结束 Trace 并导出
+ * - 通过显式的 startTrace 接口闭合生命周期
  */
 export function createRAGObserver(options: RAGObserverOptions = {}): RAGObserver {
   const {
@@ -92,18 +92,6 @@ export function createRAGObserver(options: RAGObserverOptions = {}): RAGObserver
   }
 
   /**
-   * 检查是否是 trace 结束事件
-   */
-  const isTraceEndEvent = (eventName: string): boolean => {
-    return (
-      eventName === "runtime.run.complete" ||
-      eventName === "runtime.run.fail" ||
-      eventName === "indexing.run.complete" ||
-      eventName === "indexing.run.fail"
-    )
-  }
-
-  /**
    * 结束 trace 并导出
    */
   const finishTrace = (traceId: string, status: "ok" | "error"): void => {
@@ -115,7 +103,7 @@ export function createRAGObserver(options: RAGObserverOptions = {}): RAGObserver
 
     const trace: RAGTrace = {
       traceId: state.traceId,
-      scope: state.scope,
+      scope: state.scope as any,
       startedAt: state.startedAt,
       endedAt: state.endedAt,
       durationMs: new Date(state.endedAt).getTime() - new Date(state.startedAt).getTime(),
@@ -129,6 +117,27 @@ export function createRAGObserver(options: RAGObserverOptions = {}): RAGObserver
   }
 
   const ragObserver: RAGObserver = {
+    startTrace(traceId: string, scope: "runtime" | "indexing" | "eval"): TraceHandle {
+      let state = activeTraces.get(traceId)
+      if (!state) {
+        state = {
+          traceId,
+          scope,
+          startedAt: createTimestamp(),
+          events: [],
+          errors: [],
+          status: "ok",
+        }
+        activeTraces.set(traceId, state)
+      }
+
+      return {
+        end: (status: "ok" | "error") => {
+          finishTrace(traceId, status)
+        }
+      }
+    },
+
     onEvent(event: RAGEvent) {
       // 始终校验事件名
       const validation = validateEventName(event.name)
@@ -152,12 +161,6 @@ export function createRAGObserver(options: RAGObserverOptions = {}): RAGObserver
 
       // 添加事件
       state.events.push(event)
-
-      // 检查是否是结束事件
-      if (isTraceEndEvent(event.name)) {
-        const status = event.name.endsWith(".fail") ? "error" : "ok"
-        finishTrace(event.traceId, status)
-      }
     },
 
     onError(error: RAGErrorRecord) {
@@ -176,11 +179,6 @@ export function createRAGObserver(options: RAGObserverOptions = {}): RAGObserver
 
       state.errors.push(error)
       state.status = "error"
-
-      // 检查是否是 trace 结束错误
-      if (isTraceEndEvent(error.name)) {
-        finishTrace(error.traceId, "error")
-      }
     },
 
     onTraceEnd(trace: RAGTrace) {
@@ -201,7 +199,7 @@ export function createRAGObserver(options: RAGObserverOptions = {}): RAGObserver
         const now = createTimestamp()
         const trace: RAGTrace = {
           traceId: state.traceId,
-          scope: state.scope,
+          scope: state.scope as any,
           startedAt: state.startedAt,
           endedAt: now,
           durationMs: new Date(now).getTime() - new Date(state.startedAt).getTime(),
