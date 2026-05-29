@@ -4,12 +4,8 @@ RAG 链路观测与诊断层。结构化记录 RAG 运行时证据，回答三�
 
 ## Language
 
-**Hook**:
-管线执行过程中的扩展点，允许在特定阶段注入自定义逻辑。与 Observer 独立共存。
-_Avoid_: callback, interceptor
-
 **Observer** (RAGObserver):
-统一观察接口，用于接收 RAG 事件、错误和 trace 生命周期通知。与 Hook 独立，专注于观测而非管线扩展。
+统一观察接口，用于接收 RAG 事件、错误和 trace 生命周期通知。专注于观测而非管线扩展。
 _Avoid_: listener, subscriber
 
 **Exporter** (TraceExporter):
@@ -42,8 +38,7 @@ _Avoid_: metadata, properties
 
 ## Relationships
 
-- **Hook** 可以挂载到 Pipeline 的任意阶段，用于注入自定义逻辑
-- **Observer** 独立于 Hook，专注于接收观测事件
+- **Observer** 专注于接收观测事件，不参与管线扩展
 - **Observer** → **RedactionMiddleware** → **Exporter**：数据流向
 - **SamplingMiddleware** 在 RedactionMiddleware 之前执行，决定是否采样
 - **Trace** 记录一次 Pipeline 执行的全过程
@@ -52,7 +47,7 @@ _Avoid_: metadata, properties
 
 ## Design decisions
 
-1. **RAGObserver 与 Hook 独立共存** — Hook 用于管线扩展，Observer 用于观测
+1. **RAGObserver 专注于观测** — Observer 用于观测，不参与管线扩展
 2. **RAGEvent 保留 name 和 stage 两个字段** — stage 用于快速过滤，name 用于精确匹配
 3. **TraceContext 是创建时输入，RAGTrace 是最终输出** — 字段重复是刻意设计
 4. **Observer 错误隔离** — 吞掉错误，通过 `onObserverError` 回调通知调用方
@@ -68,8 +63,8 @@ _Avoid_: metadata, properties
 
 ## Example dialogue
 
-> **Dev:** "我在 **Retriever** 阶段挂了一个 **Hook** 来记录每次检索的耗时。"
-> **Domain expert:** "这些数据会汇入 **Trace**，最终聚合成 **Metric** 用于监控。"
-
 > **Dev:** "我创建了一个 **Observer** 来监控 runtime 的执行。"
 > **Domain expert:** "Observer 会接收到 **Event**，经过 **RedactionMiddleware** 脱敏后，由 **Exporter** 输出到目标。"
+
+> **Dev:** "我想记录每次检索的耗时。"
+> **Domain expert:** "Observer 会在 `runtime.retrieval.start` 和 `runtime.retrieval.complete` 事件中记录耗时，你可以用这些事件来分析性能瓶颈。"

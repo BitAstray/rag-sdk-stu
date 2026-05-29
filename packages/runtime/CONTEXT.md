@@ -51,6 +51,28 @@ _Avoid_: listener, subscriber
 - 各阶段不再隐式依赖单体 Context，管线状态由 **DAG** 的依赖图传递。
 - **Observer** 可选接入，在 DAG 节点边界发射事件，实现链路观测。
 
+## Interface Layering
+
+**Runtime 的接口是"运行时内部接口"** — 由 Runtime 包内部使用，支持更细粒度的控制：
+
+- **RuntimeRetriever**: `retrieve(input: PreprocessedQuery): Promise<RuntimeRetrieverResult>` — 返回 RetrievalCandidate[] + RelevanceScore
+- **RuntimeGenerator**: `generate(query: PreprocessedQuery, candidates: RetrievalCandidate[], promptContext: string | null): Promise<RuntimeGeneratorResult>` — 支持 promptContext 和详细调试信息
+
+**用户不需要直接实现 Runtime 的接口**。用户应该实现 Core 的简单接口（Retriever、Generator），然后通过 Wrapper 模式桥接到 Runtime：
+
+- **CoreRetrieverWrapper**: 将 Core.Retriever 包装为 RuntimeRetriever
+- **CoreGeneratorWrapper**: 将 Core.Generator 包装为 RuntimeGenerator
+
+**设计意图**：
+- **用户层**：用户实现 Core 的简单接口，降低学习成本
+- **运行时层**：Runtime 的复杂接口支持更细粒度的控制（如 RelevanceScore、SelectionDetail、promptContext）
+- **桥接层**：Wrapper 模式使得用户实现可以无缝接入 Runtime 的复杂管线
+
+**为什么需要两套接口？**
+- Core 的接口简单，适合大多数用户场景
+- Runtime 的接口复杂，支持高级功能（如重排序、预算裁剪、调试信息）
+- Wrapper 模式使得用户可以渐进式地从简单接口迁移到复杂接口
+
 ## Example dialogue
 
 > **Dev:** "**Retriever** 返回了 20 个 candidate，但 **Generator** 的上下文窗口只能放 5 个。"

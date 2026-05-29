@@ -42,6 +42,18 @@ _Avoid_: trace sample
 - **TraceEvalLink** 将 observability 的 trace 与 eval 的 sample 关联
 - **TraceEvalSample** 从 trace 中提取 query、answer、candidates 等信息用于 eval
 
+## Dependencies
+
+**Eval 依赖 Core 和 Observability**：
+
+- **Core**: 使用 Core 的数据类型（Query, Chunk, RAGResponse）
+- **Observability**: 使用 Observability 的 trace 数据结构（RAGTrace, RAGEvent）提取 eval 样本
+
+**Eval 不直接依赖 Runtime**：
+- Eval 通过 Observability 的 trace 数据结构获取 Pipeline 执行结果
+- Runner 可以调用 Runtime 的 `run` 方法，但这是通过依赖注入实现的，而不是直接依赖
+- 这种设计使得 Eval 可以评估任何 Pipeline 实现，不仅仅是 Runtime
+
 ## Example dialogue
 
 > **Dev:** "**Runner** 从 **Dataset** 中取出 100 条 **Query**，逐条执行 Pipeline。"
@@ -49,3 +61,6 @@ _Avoid_: trace sample
 
 > **Dev:** "我想从 observability 的 trace 中生成 eval 样本。"
 > **Domain expert:** "用 **TraceEvalSample**，它可以从 trace 中提取 query、answer、candidates 等信息，然后你可以用这些信息进行 eval。"
+
+> **Dev:** "我想用 Eval 来评估我的 Runtime。"
+> **Domain expert:** "Runner 会调用 Runtime 的 `run` 方法，然后从 Observability 的 trace 中提取结果进行评估。"

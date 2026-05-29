@@ -41,6 +41,25 @@ _Avoid_: meta, attribute
 - 一条 **RAG Pipeline** 产出一个 **RAGResponse**
 - 一个 **RAGResponse** 包含答案文本和引用的 **Chunk[]**
 
+## Interface Layering
+
+**Core 的接口是"用户实现接口"** — 用户只需要实现这两个简单接口：
+
+- **Retriever**: `retrieve(query: Query): Promise<Chunk[]>` — 根据查询检索相关 Chunk
+- **Generator**: `generate(input: { query: Query; chunks: Chunk[] }): Promise<string>` — 基于查询和 Chunk 生成答案
+
+**Runtime 的接口是"运行时内部接口"** — 由 Runtime 包内部使用，用户不需要直接实现：
+
+- **RuntimeRetriever**: 复杂接口，接收 PreprocessedQuery，返回 RetrievalCandidate[] + RelevanceScore
+- **RuntimeGenerator**: 复杂接口，接收 Query + candidates + promptContext，返回 RuntimeGeneratorResult
+
+**Wrapper 模式**：Runtime 通过 `CoreRetrieverWrapper` 和 `CoreGeneratorWrapper` 桥接这两个接口层。用户实现 Core 的简单接口，Runtime 自动包装为复杂接口。
+
+**设计意图**：
+- **用户层**：只需要关心 Core 的简单接口，降低学习成本
+- **运行时层**：Runtime 的复杂接口支持更细粒度的控制（如 RelevanceScore、SelectionDetail）
+- **桥接层**：Wrapper 模式使得用户实现可以无缝接入 Runtime 的复杂管线
+
 ## Example dialogue
 
 > **Dev:** "当用户提交一个 **Query** 时，我们需要从 **VectorStore** 中检索相关的 **Chunk**，然后传给 **Generator** 生成 **RAGResponse**。"

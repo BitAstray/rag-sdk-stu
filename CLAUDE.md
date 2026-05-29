@@ -13,13 +13,30 @@ RAG SDK Monorepo — TypeScript，pnpm workspace。**类型检查用 `tsgo` 而�
 
 | 分组 | 职责 |
 |------|------|
-| `core` | 类型定义、接口、管线抽象、错误类型 |
-| `runtime` | 四阶段在线编排（pre-retrieval → retrieval → post-retrieval → generation），依赖 `core` |
+| `core` | 类型定义、**用户实现接口**（Retriever、Generator）、管线抽象、错误类型 |
+| `runtime` | 四阶段在线编排（pre-retrieval → retrieval → post-retrieval → generation），**运行时内部接口**，依赖 `core` |
 | `indexing` | 加载、分块、嵌入、写入、管线 |
-| `adapters` | 外部服务适配器（LLM、向量存储等） |
+| `adapters` | 外部服务适配器（LLM、向量存储等），实现 Core 和 Indexing 的接口 |
 | `observability` | 钩子、追踪、指标 |
 | `eval` | 数据集、运行器、指标、评判器 |
-| `utils` | 日志、配置、辅助函数 |
+| `utils` | 日志、配置、辅助函数（时间戳、ID 生成、安全 JSON） |
+
+## 接口分层
+
+**Core 的接口是"用户实现接口"** — 用户只需要实现这两个简单接口：
+- `Retriever`: `retrieve(query: Query): Promise<Chunk[]>`
+- `Generator`: `generate(input: { query: Query; chunks: Chunk[] }): Promise<string>`
+
+**Runtime 的接口是"运行时内部接口"** — 由 Runtime 包内部使用，支持更细粒度的控制：
+- `RuntimeRetriever`: 返回 RetrievalCandidate[] + RelevanceScore
+- `RuntimeGenerator`: 支持 promptContext 和详细调试信息
+
+**Wrapper 模式**：Runtime 通过 `CoreRetrieverWrapper` 和 `CoreGeneratorWrapper` 桥接这两个接口层。用户实现 Core 的简单接口，Runtime 自动包装为复杂接口。
+
+**设计意图**：
+- 用户层：只需要关心 Core 的简单接口，降低学习成本
+- 运行时层：Runtime 的复杂接口支持更细粒度的控制（如 RelevanceScore、SelectionDetail）
+- 桥接层：Wrapper 模式使得用户实现可以无缝接入 Runtime 的复杂管线
 
 ## 文档工作流（强制）
 

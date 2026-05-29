@@ -249,7 +249,7 @@ const result = await PipelineSteps
 
 ## 设计决策
 
-1. **RAGObserver 与 Hook 独立共存** - Hook 用于管线扩展，Observer 用于观测
+1. **RAGObserver 专注于观测** - Observer 用于观测，不参与管线扩展
 2. **数据流向** - Observer → RedactionMiddleware → Exporter
 3. **采样时机** - 先采样再脱敏
 4. **错误隔离** - Observer 错误不中断主流程
