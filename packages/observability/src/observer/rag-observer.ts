@@ -176,6 +176,11 @@ export function createRAGObserver(options: RAGObserverOptions = {}): RAGObserver
 
       state.errors.push(error)
       state.status = "error"
+
+      // 检查是否是 trace 结束错误
+      if (isTraceEndEvent(error.name)) {
+        finishTrace(error.traceId, "error")
+      }
     },
 
     onTraceEnd(trace: RAGTrace) {
