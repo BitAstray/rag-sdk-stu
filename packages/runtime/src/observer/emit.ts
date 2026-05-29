@@ -1,5 +1,5 @@
 import type { RAGObserver, RAGEvent, RAGErrorRecord, RuntimeEventName } from "@rag-sdk/observability"
-import { createTimestamp } from "@rag-sdk/observability"
+import { createTimestamp } from "@rag-sdk/utils"
 
 /**
  * 事件发射上下文

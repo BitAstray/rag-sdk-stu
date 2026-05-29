@@ -1,5 +1,5 @@
 import type { RAGObserver } from "@rag-sdk/observability"
-import { createTimestamp, createTraceId } from "@rag-sdk/observability"
+import { createTimestamp, createId } from "@rag-sdk/utils"
 import { emitEvent, emitError, createEmitContext } from "../observer/emit.js"
 
 export interface DAGNode<Inputs = Record<string, any>, Output = any> {
@@ -65,7 +65,7 @@ export async function executeDAG(
   const traceTags: Record<string, string | number | boolean> | undefined = initialInputs._traceTags
 
   // 生成 traceId
-  const traceId = providedTraceId || createTraceId()
+  const traceId = providedTraceId || createId("trace")
 
   // 创建 emit context
   const ctx = createEmitContext(traceId, observer)

@@ -1,6 +1,6 @@
 import type { Chunk, Document, Vector } from "@rag-sdk/core"
 import type { RAGObserver } from "@rag-sdk/observability"
-import { createTraceId } from "@rag-sdk/observability"
+import { createId } from "@rag-sdk/utils"
 import type {
   Loader,
   DocumentTransformer,
@@ -100,7 +100,7 @@ export const PipelineSteps = {
     // 创建 emit context
     const emitCtx = options?.observer
       ? createEmitContext(
-          options.trace?.traceId || createTraceId(),
+          options.trace?.traceId || createId("trace"),
           options.observer,
           {
             dataset: options.trace?.dataset,
