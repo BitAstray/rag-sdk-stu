@@ -4,6 +4,9 @@ import {
   createConsoleExporter,
   createMemoryTraceExporter,
   createNoopObserver,
+  createCompositeObserver,
+  createRedactionMiddleware,
+  createSamplingMiddleware,
   validateEventName,
   createTimestamp,
   createTraceId,
@@ -60,7 +63,7 @@ const ragObserver = createRAGObserver({
     alwaysSampleOnError: true,
   },
   redact: {
-    fields: ["user.email"],
+    fields: ["user.email", "password"],
     maskContent: true,
     contentPreviewLength: 50,
   },
@@ -77,7 +80,11 @@ ragObserver.onEvent?.({
   stage: "query",
   name: "runtime.query.receive",
   timestamp: createTimestamp(),
-  attributes: { query: "What is the company vacation policy?" },
+  attributes: {
+    query: "What is the company vacation policy?",
+    "user.email": "user@example.com",
+    password: "secret123",
+  },
 })
 
 ragObserver.onEvent?.({
@@ -120,6 +127,58 @@ if (traces.length > 0) {
     status: traces[0].status,
     eventCount: traces[0].events.length,
   })
+
+  // 验证脱敏效果
+  const firstEvent = traces[0].events[0]
+  console.log("\n8. Redaction Effect")
+  console.log("Original query:", "What is the company vacation policy?")
+  console.log("Redacted email:", firstEvent.attributes?.["user.email"])
+  console.log("Redacted password:", firstEvent.attributes?.password)
 }
+
+// 9. Composite Observer
+console.log("\n9. Composite Observer")
+const exporter1 = createMemoryTraceExporter()
+const exporter2 = createMemoryTraceExporter()
+const observer1 = createRAGObserver({ exporters: [exporter1] })
+const observer2 = createRAGObserver({ exporters: [exporter2] })
+const composite = createCompositeObserver([observer1, observer2])
+
+composite.onEvent?.({
+  traceId: "trace-003",
+  scope: "runtime",
+  stage: "run",
+  name: "runtime.run.complete",
+  timestamp: createTimestamp(),
+})
+
+console.log("Exporter1 traces:", exporter1.getTraces().length)
+console.log("Exporter2 traces:", exporter2.getTraces().length)
+
+// 10. Sampling Middleware
+console.log("\n10. Sampling Middleware")
+const sampler = createSamplingMiddleware({ rate: 0.5, alwaysSampleOnError: true })
+console.log("Sample (normal):", sampler.shouldSample(false))
+console.log("Sample (error):", sampler.shouldSample(true))
+
+// 11. Error Handling
+console.log("\n11. Error Handling")
+const errorObserver = createRAGObserver({
+  exporters: [{
+    export: () => { throw new Error("Export failed") }
+  }],
+  onError: (err, ctx) => {
+    console.log("Error caught:", err.message)
+    console.log("Method:", ctx.method)
+  },
+})
+
+errorObserver.onEvent?.({
+  traceId: "trace-004",
+  scope: "runtime",
+  stage: "run",
+  name: "runtime.run.complete",
+  timestamp: createTimestamp(),
+})
 
 console.log("\n=== Demo Complete ===")
