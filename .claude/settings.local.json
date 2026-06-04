@@ -8,11 +8,16 @@
       "Bash(npx tsgo *)",
       "Bash(npx vitest *)",
       "Bash(pnpm *)",
-<<<<<<< HEAD
-=======
       "Bash(npx tsx *)",
->>>>>>> f0a45ce77be7e0d2109a8d21786c84ba186afb8f
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(cd /d D:\\\\A_Code\\\\rag-sdk-stu)",
+      "Bash(del packages\\\\observability\\\\src\\\\utils\\\\id.ts packages\\\\observability\\\\src\\\\utils\\\\safe-json.ts packages\\\\observability\\\\src\\\\utils\\\\timestamp.ts packages\\\\observability\\\\src\\\\utils\\\\index.ts)",
+      "Bash(del packages\\\\runtime\\\\src\\\\spec\\\\context.ts packages\\\\runtime\\\\src\\\\spec\\\\runtime-result.ts packages\\\\runtime\\\\src\\\\spec\\\\debug.ts packages\\\\runtime\\\\__tests__\\\\spec\\\\runtime-result.test.ts)",
+      "Bash(pnpm --filter @rag-sdk/observability demo)",
+      "Bash(echo \"obs exit: $?\")",
+      "Bash(pnpm --filter @rag-sdk/indexing demo)",
+      "Bash(echo \"idx exit: $?\")",
+      "Bash(pnpm --filter @rag-sdk/runtime demo)"
     ]
   }
 }
