@@ -8,9 +8,8 @@ import {
   createRedactionMiddleware,
   createSamplingMiddleware,
   validateEventName,
-  createTimestamp,
-  createTraceId,
 } from "../src/index.js"
+import { createTimestamp, createTraceId } from "@rag-sdk/utils"
 
 console.log("=== Observability Package Demo ===\n")
 

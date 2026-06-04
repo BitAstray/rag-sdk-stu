@@ -36,6 +36,10 @@ _Avoid_: stat, measurement
 事件和 trace 的结构化字段，类型为 `Record<string, JsonValue>`。约定尽量扁平，但允许嵌套。
 _Avoid_: metadata, properties
 
+**Emitter** (createEmitter / Emitter):
+发射协议的唯一实现。创建时绑定 `scope` 与可选 `baseAttributes`，返回 `event()`/`error()` 两个方法。负责 RAGEvent/RAGErrorRecord 的组装、observer 可选守卫、时间戳与 baseAttributes 合并。runtime 与 indexing 通过薄封装（createRuntimeEmitter / createIndexingEmitter）绑定各自 scope 后复用。
+_Avoid_: emit helper, event sender
+
 ## Relationships
 
 - **Observer** 专注于接收观测事件，不参与管线扩展
@@ -60,6 +64,8 @@ _Avoid_: metadata, properties
 11. **Observer 方法异步** — fire-and-forget，不阻塞主流程
 12. **Trace 生命周期由 Observer 内部管理** — 接收到第一个事件时创建，接收到 run.complete 或 run.fail 事件时结束
 13. **Redaction 字段路径** — 支持正则表达式
+14. **发射协议归属 Observability** — `createEmitter` 是事件/错误发射的唯一实现点（ADR-006）。runtime/indexing 不再各自复制发射逻辑，而是绑定 scope 后复用。这同时消除了早先两份实现的行为漂移。
+15. **工具函数不再 re-export** — `createId`/`createTimestamp`/`safeStringify` 等直接从 `@rag-sdk/utils` 导入，observability 不再做透传外壳（ADR-006）。
 
 ## Example dialogue
 

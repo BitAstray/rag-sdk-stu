@@ -13,8 +13,11 @@ export * from "./redaction/index.js"
 // Sampling
 export * from "./sampling/index.js"
 
-// Utils
-export * from "./utils/index.js"
+// Emit
+export * from "./emit/index.js"
+
+// Event name validation
+export { isValidEventName, validateEventName } from "./utils/validate-event-name.js"
 
 // Errors
 export * from "./errors/index.js"

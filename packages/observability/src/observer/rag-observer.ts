@@ -7,7 +7,7 @@ import type { RedactionOptions } from "../types/redaction.js"
 import type { SamplingOptions } from "../types/sampling.js"
 import { createRedactionMiddleware } from "../redaction/redactor.js"
 import { createSamplingMiddleware } from "../sampling/sampler.js"
-import { createTimestamp } from "../utils/timestamp.js"
+import { createTimestamp } from "@rag-sdk/utils"
 import { validateEventName } from "../utils/validate-event-name.js"
 import type { ObserverErrorCallback } from "./errors.js"
 
