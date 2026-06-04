@@ -2,7 +2,7 @@ import type { RetrievalCandidate } from "../spec/retrieval-candidate.js"
 import type { SelectionTraceItem } from "../spec/selection-trace.js"
 import type { AppliedBudget } from "../spec/stage-result.js"
 import type { PreprocessedQuery } from "../spec/preprocessed-query.js"
-import type { PostRetrievalDebugData } from "../spec/debug.js"
+import type { DebugData } from "../spec/debug.js"
 
 export interface SelectionDetail {
   selectedCandidates: RetrievalCandidate[]
@@ -10,7 +10,7 @@ export interface SelectionDetail {
   selectionTrace: SelectionTraceItem[]
   appliedScoreThreshold?: number
   appliedBudget?: AppliedBudget
-  debug?: PostRetrievalDebugData
+  debug?: DebugData
 }
 
 export interface RetrievalPostprocessorResult {

@@ -1,6 +1,6 @@
 import type { RAGObserver } from "@rag-sdk/observability"
 import { createId } from "@rag-sdk/utils"
-import { emitEvent, emitError, createEmitContext } from "../observer/emit.js"
+import { createRuntimeEmitter } from "../observer/emit.js"
 
 export interface DAGNode<Inputs = Record<string, any>, Output = any> {
   id: string
@@ -17,6 +17,19 @@ export interface DAGNode<Inputs = Record<string, any>, Output = any> {
   }
 }
 
+/**
+ * DAG 执行上下文
+ *
+ * 横切关注点（观测、追踪）通过这个显式类型化参数传入，
+ * 而不是混在节点数据里。引擎据此发射事件、关联 trace。
+ */
+export interface ExecutionContext {
+  observer?: RAGObserver
+  requestId?: string
+  traceId?: string
+  traceTags?: Record<string, string | number | boolean>
+}
+
 export interface DAGExecutionResult {
   outputs: Record<string, any>
   durationMs: number
@@ -25,33 +38,23 @@ export interface DAGExecutionResult {
 
 export async function executeDAG(
   nodes: DAGNode[],
-  initialInputs: Record<string, any> = {}
+  initialInputs: Record<string, any> = {},
+  context: ExecutionContext = {}
 ): Promise<DAGExecutionResult> {
   const start = performance.now()
   const outputs: Record<string, any> = { ...initialInputs }
   const nodeMap = new Map<string, DAGNode>()
 
-  // 提取 observer 相关参数
-  const observer: RAGObserver | undefined = initialInputs._observer
-  const requestId: string | undefined = initialInputs._requestId
-  const providedTraceId: string | undefined = initialInputs._traceId
-  const traceTags: Record<string, string | number | boolean> | undefined = initialInputs._traceTags
+  const { observer, requestId, traceTags } = context
 
   // 生成 traceId
-  const traceId = providedTraceId || createId("trace")
+  const traceId = context.traceId || createId("trace")
 
   // 启动 trace 闭包
   const traceHandle = observer?.startTrace?.(traceId, "runtime")
 
-  // 创建 emit context
-  const ctx = createEmitContext(traceId, observer)
-
-  // 清理内部参数，不传递给节点
-  const cleanInputs = { ...initialInputs }
-  delete cleanInputs._observer
-  delete cleanInputs._requestId
-  delete cleanInputs._traceId
-  delete cleanInputs._traceTags
+  // 创建 runtime 发射器
+  const emitter = createRuntimeEmitter(traceId, observer)
 
   for (const node of nodes) {
     if (nodeMap.has(node.id)) {
@@ -61,8 +64,8 @@ export async function executeDAG(
   }
 
   const promises = new Map<string, Promise<any>>()
-  for (const key of Object.keys(cleanInputs)) {
-    promises.set(key, Promise.resolve(cleanInputs[key]))
+  for (const key of Object.keys(initialInputs)) {
+    promises.set(key, Promise.resolve(initialInputs[key]))
   }
 
   function runNode(id: string, visiting = new Set<string>()): Promise<any> {
@@ -87,7 +90,7 @@ export async function executeDAG(
 
         // 发射开始事件
         if (stage && events) {
-          emitEvent(ctx, stage as any, events.start as any)
+          emitter.event(stage, events.start as any)
         }
 
         const startNode = performance.now()
@@ -102,7 +105,7 @@ export async function executeDAG(
 
           // 发射完成事件
           if (stage && events) {
-            emitEvent(ctx, stage as any, events.complete as any, {
+            emitter.event(stage, events.complete as any, {
               nodeId: id,
               ...(node.telemetry?.extractMetrics ? node.telemetry.extractMetrics(output) : {}),
             }, durationMs)
@@ -114,7 +117,7 @@ export async function executeDAG(
 
           // 发射失败事件
           if (stage && events) {
-            emitError(ctx, stage as any, events.fail as any, err as Error, {
+            emitter.error(stage, events.fail as any, err as Error, {
               nodeId: id,
               durationMs,
             })
@@ -137,7 +140,7 @@ export async function executeDAG(
     const durationMs = performance.now() - start
 
     // 发射 run.complete 事件
-    emitEvent(ctx, "run", "runtime.run.complete", {
+    emitter.event("run", "runtime.run.complete", {
       requestId,
       tags: traceTags,
       nodeCount: nodes.length,
@@ -154,7 +157,7 @@ export async function executeDAG(
     const durationMs = performance.now() - start
 
     // 发射 run.fail 事件
-    emitError(ctx, "run", "runtime.run.fail", err as Error, {
+    emitter.error("run", "runtime.run.fail", err as Error, {
       requestId,
       tags: traceTags,
       durationMs,

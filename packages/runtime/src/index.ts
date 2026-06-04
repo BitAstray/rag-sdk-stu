@@ -8,13 +8,8 @@ export type {
   PostRetrievalResult,
   GenerationResult,
   AppliedBudget,
-  RuntimeContext,
-  RuntimeResult,
-  RetrievalDebugData,
-  PostRetrievalDebugData,
-  GenerationDebugData,
-  RuntimeMetadata,
 } from "./spec/index.js"
+export type { DebugData } from "./spec/index.js"
 export {
   PreprocessedQuerySchema,
   RetrievalCandidateSchema,
@@ -24,8 +19,6 @@ export {
   PostRetrievalResultSchema,
   GenerationResultSchema,
   AppliedBudgetSchema,
-  RuntimeContextSchema,
-  RuntimeResultSchema,
 } from "./spec/index.js"
 
 // Interfaces
@@ -51,11 +44,11 @@ export type { RuntimeStage } from "./errors/runtime.js"
 export { createRuntime } from "./pipeline/create-runtime.js"
 export type { RuntimeConfig, Runtime, RuntimeRunOptions } from "./pipeline/create-runtime.js"
 export { executeDAG } from "./pipeline/dag.js"
-export type { DAGNode, DAGExecutionResult } from "./pipeline/dag.js"
+export type { DAGNode, DAGExecutionResult, ExecutionContext } from "./pipeline/dag.js"
 
 // Observer
-export { emitEvent, emitError, createEmitContext } from "./observer/emit.js"
-export type { EmitContext } from "./observer/emit.js"
+export { createRuntimeEmitter } from "./observer/emit.js"
+export type { RuntimeEmitter } from "./observer/emit.js"
 
 // Defaults
 export { NoopQueryPreprocessor } from "./defaults/noop-query-preprocessor.js"

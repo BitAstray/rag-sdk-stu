@@ -4,6 +4,10 @@ import {
   createPostprocessorPipeline,
   scoreThreshold,
   budgetTrim,
+  CoreRetrieverWrapper,
+  CoreGeneratorWrapper,
+  NoopQueryPreprocessor,
+  PassthroughRetrievalPostprocessor,
   RuntimeError,
 } from "../src/index.js"
 import type { Chunk } from "@rag-sdk/core"
@@ -12,10 +16,13 @@ import type {
   Generator,
   RuntimeRetriever,
   RuntimeGenerator,
-  QueryPreprocessor,
 } from "../src/index.js"
 
 console.log("=== @rag-sdk/runtime Demo ===\n")
+
+// 运行结果是 DAGExecutionResult：outputs[nodeId] = { value, durationMs }
+const valueOf = (result: { outputs: Record<string, any> }, nodeId: string) =>
+  result.outputs[nodeId]?.value
 
 // Demo 1: createDefaultRuntime with core interfaces
 console.log("--- Demo 1: Default Runtime ---")
@@ -37,11 +44,11 @@ const generator: Generator = {
 
 const defaultRuntime = createDefaultRuntime({ retriever, generator })
 const result1 = await defaultRuntime.run({ query: "RAG" })
-console.log("Answer:", result1.answer)
-console.log("Candidates used:", result1.candidates.length)
+console.log("Answer:", valueOf(result1, "generator").answer)
+console.log("Candidates used:", valueOf(result1, "postprocessor").candidates.length)
 
-// Demo 2: Default postprocessor with strategies
-console.log("\n--- Demo 2: Default Postprocessor with Strategies ---")
+// Demo 2: Custom DAG runtime with postprocessor strategies
+console.log("\n--- Demo 2: Postprocessor Strategies (custom DAG) ---")
 
 const runtimeRetriever: RuntimeRetriever = {
   async retrieve() {
@@ -66,84 +73,87 @@ const runtimeGenerator: RuntimeGenerator = {
 
 const postprocessor = createPostprocessorPipeline([
   scoreThreshold(0.5),
-  budgetTrim({ maxCandidates: 2 })
+  budgetTrim({ maxCandidates: 2 }),
 ])
+const preprocessor = new NoopQueryPreprocessor()
 
 const strategyRuntime = createRuntime({
-  retriever: runtimeRetriever,
-  generator: runtimeGenerator,
-  postprocessor,
+  nodes: [
+    {
+      id: "preprocessor",
+      dependencies: ["query"],
+      execute: async (inputs) => preprocessor.preprocess(inputs.query),
+    },
+    {
+      id: "retriever",
+      dependencies: ["preprocessor"],
+      execute: async () => runtimeRetriever.retrieve({ originalQuery: "RAG", effectiveQuery: "RAG" }),
+    },
+    {
+      id: "postprocessor",
+      dependencies: ["preprocessor", "retriever"],
+      execute: async (inputs) =>
+        postprocessor.postprocess(inputs.preprocessor, inputs.retriever.candidates),
+    },
+    {
+      id: "generator",
+      dependencies: ["preprocessor", "postprocessor"],
+      execute: async (inputs) =>
+        runtimeGenerator.generate(inputs.preprocessor, inputs.postprocessor.candidates, inputs.postprocessor.promptContext),
+    },
+  ],
 })
 
 const result2 = await strategyRuntime.run({ query: "RAG" })
-console.log("Answer:", result2.answer)
-console.log("Selected:", result2.postRetrieval?.selectedCandidates.length)
-console.log("Dropped:", result2.postRetrieval?.droppedCandidates.length)
-console.log("Applied threshold:", result2.postRetrieval?.appliedScoreThreshold)
-console.log("Applied budget:", result2.postRetrieval?.appliedBudget)
-console.log("Trace entries:", result2.postRetrieval?.selectionTrace.length)
-console.log("Dropped reasons:", result2.postRetrieval?.selectionTrace.filter(t => t.action === "dropped").map(t => `${t.candidateId}: ${t.reason}`))
+const post2 = valueOf(result2, "postprocessor")
+console.log("Answer:", valueOf(result2, "generator").answer)
+console.log("Selected candidates:", post2.candidates.length)
+console.log("Detail selected:", post2.detail?.selectedCandidates.length)
+console.log("Detail dropped:", post2.detail?.droppedCandidates.length)
+console.log("Applied threshold:", post2.detail?.appliedScoreThreshold)
 
-// Demo 3: Custom runtime with all 4 stages
-console.log("\n--- Demo 3: Custom 4-Stage Runtime ---")
-
-const customPreprocessor: QueryPreprocessor = {
-  async preprocess(query) {
-    return {
-      originalQuery: query.query,
-      effectiveQuery: query.query.toLowerCase().trim(),
-      topK: 3,
-      strategy: "semantic",
-    }
-  },
-}
-
-const customRetriever: RuntimeRetriever = {
-  async retrieve(input) {
-    const filtered = chunks.filter((c) =>
-      c.content.toLowerCase().includes(input.effectiveQuery),
-    )
-    return {
-      candidates: filtered.slice(0, input.topK ?? 10).map(c => ({
-        id: c.id,
-        content: c.content,
-        metadata: c.metadata as Record<string, unknown> | undefined,
-      })),
-      debug: { source: "memory" },
-    }
-  },
-}
-
-const customRuntime = createRuntime({
-  retriever: customRetriever,
-  generator: runtimeGenerator,
-  preprocessor: customPreprocessor,
-  postprocessor: createPostprocessorPipeline([]),
-})
-
-const result3 = await customRuntime.run({ query: "  RAG  " })
-console.log("Answer:", result3.answer)
-console.log("Preprocessed:", result3.preprocessed)
-
-// Demo 4: Error handling
-console.log("\n--- Demo 4: Stage Error ---")
+// Demo 3: Error handling — a failing stage surfaces as a node error
+console.log("\n--- Demo 3: Stage Error ---")
 const failingRuntime = createRuntime({
-  retriever: customRetriever,
-  generator: {
-    async generate() {
-      throw new Error("LLM down")
+  nodes: [
+    {
+      id: "preprocessor",
+      dependencies: ["query"],
+      execute: async (inputs) => preprocessor.preprocess(inputs.query),
     },
-  },
-  preprocessor: customPreprocessor,
-  postprocessor: createPostprocessorPipeline([]),
+    {
+      id: "retriever",
+      dependencies: ["preprocessor"],
+      execute: async () => runtimeRetriever.retrieve({ originalQuery: "x", effectiveQuery: "x" }),
+    },
+    {
+      id: "generator",
+      dependencies: ["preprocessor", "retriever"],
+      telemetry: {
+        stage: "generation",
+        events: { start: "runtime.generation.start", complete: "runtime.generation.complete", fail: "runtime.generation.fail" },
+      },
+      execute: async () => {
+        throw new RuntimeError("generation", "LLM down")
+      },
+    },
+  ],
 })
 
 try {
   await failingRuntime.run({ query: "test" })
 } catch (e) {
-  if (e instanceof RuntimeError) {
-    console.log(`RuntimeError [${e.stage}]: ${e.message}`)
-  }
+  console.log("Caught error:", (e as Error).message)
 }
+
+// Demo 4: Passthrough postprocessor used standalone
+console.log("\n--- Demo 4: Passthrough Postprocessor ---")
+const passthrough = new PassthroughRetrievalPostprocessor()
+const wrapped = new CoreRetrieverWrapper(retriever)
+const wrappedGen = new CoreGeneratorWrapper(generator)
+const retrieved = await wrapped.retrieve({ originalQuery: "RAG", effectiveQuery: "RAG" })
+const processed = await passthrough.postprocess({ originalQuery: "RAG", effectiveQuery: "RAG" }, retrieved.candidates)
+const generated = await wrappedGen.generate({ originalQuery: "RAG", effectiveQuery: "RAG" }, processed.candidates, processed.promptContext)
+console.log("Passthrough answer:", generated.answer)
 
 console.log("\n=== Demo Complete ===")

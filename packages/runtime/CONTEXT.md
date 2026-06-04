@@ -43,6 +43,8 @@ _Avoid_: listener, subscriber
 ## Relationships
 
 - **RAG Pipeline** 核心执行引擎是一个通用的 **DAG (有向无环图)**，通过 `executeDAG` 解析节点依赖并发执行。
+- `executeDAG(nodes, initialInputs, context)` 的第三参数 `ExecutionContext` 显式承载横切关注点（observer、requestId、traceId、traceTags），不再通过 `_observer` 等魔法键混入数据输入（ADR-006）。
+- 引擎内部用 `createRuntimeEmitter`（来自 observability 的 `createEmitter`，绑定 `scope="runtime"`）在节点边界发射事件。
 - 默认的运行时管线依次包含节点：Preprocessor → Retriever → Postprocessor → Generator
 - **Preprocessor** 输出 PreprocessedQuery，传给 Retriever
 - **Retriever** 输出 RetrievalCandidate[]（携带 RelevanceScore），传给 Postprocessor

@@ -93,7 +93,7 @@ interface RuntimeRetriever {
 
 interface RuntimeRetrieverResult {
   candidates: RetrievalCandidate[]
-  debug?: RetrievalDebugData
+  debug?: DebugData
 }
 
 interface RetrievalCandidate {
@@ -141,7 +141,7 @@ interface RuntimeGenerator {
 
 interface RuntimeGeneratorResult {
   answer: string | null
-  debug?: GenerationDebugData
+  debug?: DebugData
 }
 ```
 

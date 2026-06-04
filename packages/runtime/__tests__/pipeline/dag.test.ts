@@ -143,7 +143,7 @@ describe('executeDAG', () => {
       execute: () => 'output',
     }
 
-    const result = await executeDAG([node], { _traceId: 'custom-trace' })
+    const result = await executeDAG([node], {}, { traceId: 'custom-trace' })
 
     expect(result.traceId).toBe('custom-trace')
   })
@@ -159,7 +159,7 @@ describe('executeDAG', () => {
       execute: () => 'output',
     }
 
-    await executeDAG([node], { _observer: observer })
+    await executeDAG([node], {}, { observer })
 
     // 应该有 start 和 complete 事件
     expect(observer.onEvent).toHaveBeenCalled()

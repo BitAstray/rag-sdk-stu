@@ -23,13 +23,16 @@ export interface Runtime {
 export function createRuntime(config: RuntimeConfig): Runtime {
   return {
     run: async (query: Query, options?: RuntimeRunOptions) => {
-      return executeDAG(config.nodes, {
-        query,
-        _observer: config.observer,
-        _requestId: options?.requestId,
-        _traceId: options?.trace?.traceId,
-        _traceTags: options?.trace?.tags,
-      })
+      return executeDAG(
+        config.nodes,
+        { query },
+        {
+          observer: config.observer,
+          requestId: options?.requestId,
+          traceId: options?.trace?.traceId,
+          traceTags: options?.trace?.tags,
+        }
+      )
     }
   }
 }

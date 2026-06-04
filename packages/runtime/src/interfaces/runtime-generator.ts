@@ -1,10 +1,10 @@
 import type { RetrievalCandidate } from "../spec/retrieval-candidate.js"
 import type { PreprocessedQuery } from "../spec/preprocessed-query.js"
-import type { GenerationDebugData } from "../spec/debug.js"
+import type { DebugData } from "../spec/debug.js"
 
 export interface RuntimeGeneratorResult {
   answer: string | null
-  debug?: GenerationDebugData
+  debug?: DebugData
 }
 
 export interface RuntimeGenerator {
