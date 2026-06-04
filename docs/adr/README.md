@@ -7,3 +7,4 @@
 | [ADR-003](./0003-adapters-structure.md) | adapters 包结构与第三方抽象策略 | 已采纳 |
 | [ADR-004](./0004-architecture-deepening.md) | 架构深化重构 | 已采纳 |
 | [ADR-005](./0005-dag-and-stream-pipelines.md) | 架构深化重构 (DAG、流式引擎与组合式后处理) | 已采纳 |
+| [ADR-006](./0006-emitter-context-eval-deepening.md) | 架构深化重构（发射器收敛、类型化执行上下文、幽灵类型清理、Eval 落地） | 已采纳 |

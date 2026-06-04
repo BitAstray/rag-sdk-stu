@@ -71,7 +71,7 @@ describe("export integrity", () => {
 
     it("exports schemas", () => {
       expect(runtime.PreprocessedQuerySchema).toBeDefined()
-      expect(runtime.RuntimeResultSchema).toBeDefined()
+      expect(runtime.RetrievalResultSchema).toBeDefined()
     })
   })
 
