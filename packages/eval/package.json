@@ -13,8 +13,11 @@
   },
   "dependencies": {
     "@rag-sdk/core": "workspace:*",
-    "@rag-sdk/observability": "workspace:*"
+    "@rag-sdk/observability": "workspace:*",
+    "@rag-sdk/utils": "workspace:*"
   },
   "devDependencies": {},
-  "scripts": {}
+  "scripts": {
+    "demo": "tsx demo/index.ts"
+  }
 }

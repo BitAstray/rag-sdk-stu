@@ -2,7 +2,7 @@
 
 评估框架，用于衡量 RAG Pipeline 的质量。提供数据集管理、运行器、指标计算和评判器。
 
-当前阶段：类型定义完成，预留与 observability 的关联字段。
+当前阶段：最小可用闭环已落地（ADR-006）。`Runner` + 内置 `Metric`（RecallAtK/MRR/AnswerPresence）+ `HeuristicJudge` + trace 提取（`extractEvalSample`/`extractQualitySignals`）。配套 demo 与单元测试。
 
 ## Language
 
@@ -51,8 +51,15 @@ _Avoid_: trace sample
 
 **Eval 不直接依赖 Runtime**：
 - Eval 通过 Observability 的 trace 数据结构获取 Pipeline 执行结果
-- Runner 可以调用 Runtime 的 `run` 方法，但这是通过依赖注入实现的，而不是直接依赖
+- Runner 通过依赖注入的 `EvalPipeline`（`(Query) => Promise<RAGResponse>`）调用任意 Pipeline 实现，不直接依赖 Runtime 包
 - 这种设计使得 Eval 可以评估任何 Pipeline 实现，不仅仅是 Runtime
+
+## Design decisions
+
+1. **Metric 按名解析** — `EvalConfig.metrics: string[]` 通过 `resolveMetrics` 映射到实现；未知指标名抛错，避免静默漏算。
+2. **Judge 与 Metric 分层** — Metric 是确定性逐项比较；Judge 承载更主观/聚合的评判（可启发式或 LLM）。Judge 分数以 `<judgeName>.<key>` 命名空间并入 scores。
+3. **Runner 依赖注入 Pipeline** — 不 import runtime，落实 CONTEXT 声明的「不直接依赖 Runtime」。
+4. **trace 提取落实 observability 依赖** — `extractEvalSample`/`extractQualitySignals` 从 `RAGTrace` 读取阶段事件属性产出 eval 样本与质量信号。
 
 ## Example dialogue
 
