@@ -13,6 +13,19 @@ export interface IndexingContext {
   totalDocuments: number
 }
 
+/**
+ * 链路追踪选项
+ *
+ * 贯穿 indexing 管线的追踪元数据。dataset/version/tags 会作为
+ * baseAttributes 注入到每个 observer 事件与错误中。
+ */
+export interface TraceOptions {
+  traceId?: string
+  dataset?: string
+  version?: string
+  tags?: Record<string, string | number | boolean>
+}
+
 export interface IndexingOptions {
   loader: Loader
   chunker?: Chunker
@@ -23,12 +36,7 @@ export interface IndexingOptions {
   metadataBuilder?: (doc: Document, chunk: Chunk, context: IndexingContext) => Record<string, string | number | boolean | string[] | null>
   onError?: (error: Error, doc: Document | undefined, context: IndexingContext) => void
   observer?: RAGObserver
-  trace?: {
-    traceId?: string
-    dataset?: string
-    version?: string
-    tags?: Record<string, string | number | boolean>
-  }
+  trace?: TraceOptions
 }
 
 export interface Loader {

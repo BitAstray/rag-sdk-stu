@@ -1,2 +1,2 @@
-export { emitEvent, emitError, createEmitContext } from "./emit.js"
-export type { EmitContext } from "./emit.js"
+export { createIndexingEmitter } from "./emit.js"
+export type { IndexingEmitter } from "./emit.js"

@@ -1,98 +1,28 @@
-import type { RAGObserver, RAGEvent, RAGErrorRecord, IndexingEventName } from "@rag-sdk/observability"
-import { createTimestamp } from "@rag-sdk/utils"
+import { createEmitter } from "@rag-sdk/observability"
+import type { Emitter, RAGObserver, IndexingEventName } from "@rag-sdk/observability"
+import type { TraceOptions } from "../types/index.js"
+
+/** Indexing 作用域的发射器：事件名收窄为 IndexingEventName */
+export type IndexingEmitter = Emitter<IndexingEventName>
 
 /**
- * 事件发射上下文
+ * 创建绑定 indexing scope 的发射器。
+ *
+ * 发射协议本身由 observability 的 createEmitter 实现，
+ * 这里绑定 scope = "indexing"，并把 dataset/version/tags 作为
+ * baseAttributes 注入，使其自动出现在每个事件与错误的 attributes 中。
  */
-export interface EmitContext {
-  traceId: string
-  observer?: RAGObserver
-  dataset?: string
-  version?: string
-  tags?: Record<string, string | number | boolean>
-}
-
-/**
- * 发射事件
- */
-export function emitEvent(
-  ctx: EmitContext,
-  stage: string,
-  name: IndexingEventName,
-  attributes?: Record<string, unknown>,
-  durationMs?: number
-): void {
-  if (!ctx.observer?.onEvent) return
-
-  const event: RAGEvent = {
-    traceId: ctx.traceId,
-    scope: "indexing",
-    stage,
-    name,
-    timestamp: createTimestamp(),
-    durationMs,
-    attributes: {
-      dataset: ctx.dataset,
-      version: ctx.version,
-      tags: ctx.tags,
-      ...attributes,
-    } as any,
-  }
-
-  ctx.observer.onEvent(event)
-}
-
-/**
- * 发射错误
- */
-export function emitError(
-  ctx: EmitContext,
-  stage: string,
-  name: IndexingEventName,
-  error: Error,
-  attributes?: Record<string, unknown>
-): void {
-  if (!ctx.observer?.onError) return
-
-  const errorRecord: RAGErrorRecord = {
-    traceId: ctx.traceId,
-    scope: "indexing",
-    stage,
-    name,
-    timestamp: createTimestamp(),
-    error: {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    },
-    attributes: {
-      dataset: ctx.dataset,
-      version: ctx.version,
-      tags: ctx.tags,
-      ...attributes,
-    } as any,
-  }
-
-  ctx.observer.onError(errorRecord)
-}
-
-/**
- * 创建 EmitContext
- */
-export function createEmitContext(
+export function createIndexingEmitter(
   traceId: string,
   observer?: RAGObserver,
-  options?: {
-    dataset?: string
-    version?: string
-    tags?: Record<string, string | number | boolean>
-  }
-): EmitContext {
-  return {
+  trace?: Pick<TraceOptions, "dataset" | "version" | "tags">
+): IndexingEmitter {
+  return createEmitter<IndexingEventName>({
+    scope: "indexing",
     traceId,
     observer,
-    dataset: options?.dataset,
-    version: options?.version,
-    tags: options?.tags,
-  }
+    baseAttributes: trace
+      ? { dataset: trace.dataset, version: trace.version, tags: trace.tags }
+      : undefined,
+  })
 }

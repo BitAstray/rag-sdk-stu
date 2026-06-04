@@ -3,6 +3,7 @@ export type {
   IndexingResult,
   IndexingContext,
   IndexingOptions,
+  TraceOptions,
   Loader,
   DocumentTransformer,
   Chunker,
@@ -16,8 +17,8 @@ export type { Vector } from "./embedders/types.js"
 export { IndexingError } from "./types/errors.js"
 
 // Observer
-export { emitEvent, emitError, createEmitContext } from "./observer/emit.js"
-export type { EmitContext } from "./observer/emit.js"
+export { createIndexingEmitter } from "./observer/emit.js"
+export type { IndexingEmitter } from "./observer/emit.js"
 
 // Default components
 export { SimpleChunker } from "./chunkers/simple-chunker.js"

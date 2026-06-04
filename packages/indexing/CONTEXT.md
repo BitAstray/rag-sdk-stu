@@ -24,6 +24,10 @@ _Avoid_: vector database, vector db
 对 Document 进行预处理转换的接口（清洗、过滤等）。
 _Avoid_: preprocessor, filter
 
+**TraceOptions**:
+贯穿索引管线的追踪元数据（traceId/dataset/version/tags）。dataset/version/tags 会作为 baseAttributes 注入到每个 observer 事件与错误。`IndexingOptions.trace`、`fromLoader` 与 `createIndexingEmitter` 统一引用此具名类型（ADR-006）。
+_Avoid_: trace config, tracing
+
 ## Relationships
 
 - **Indexing Pipeline** 采用基于 **AsyncIterable** 的流式处理架构 (`IndexingStream`)
@@ -34,6 +38,7 @@ _Avoid_: preprocessor, filter
 - **Embedder** 将 Chunk 流转换为 Vector 流
 - **VectorStore** 消费 Vector 流并持久化
 - **Observer** 可选接入，在 pipeline 完成时发射事件，实现链路观测
+- 发射通过 `createIndexingEmitter`（来自 observability 的 `createEmitter`，绑定 `scope="indexing"`）完成，TraceOptions 的 dataset/version/tags 自动并入事件 attributes（ADR-006）
 
 ## Example dialogue
 

@@ -9,9 +9,10 @@ import type {
   VectorStore,
   IndexingResult,
   IndexingContext,
+  TraceOptions,
 } from "../types/index.js"
-import type { EmitContext } from "../observer/emit.js"
-import { emitEvent, emitError, createEmitContext } from "../observer/emit.js"
+import type { IndexingEmitter } from "../observer/emit.js"
+import { createIndexingEmitter } from "../observer/emit.js"
 
 export type Transform<In, Out> = (source: AsyncIterable<In>, result: IndexingResult) => AsyncIterable<Out>
 
@@ -25,7 +26,7 @@ export class IndexingStream<T> implements AsyncIterable<T> {
   constructor(
     private source: AsyncIterable<T>,
     public readonly result: IndexingResult,
-    private readonly emitCtx?: EmitContext,
+    private readonly emitter?: IndexingEmitter,
     private readonly pipelineStages: string[] = [],
     private readonly traceHandle?: TraceHandle
   ) {}
@@ -41,7 +42,7 @@ export class IndexingStream<T> implements AsyncIterable<T> {
     return new IndexingStream(
       transform(this.source, this.result),
       this.result,
-      this.emitCtx,
+      this.emitter,
       stages,
       this.traceHandle
     )
@@ -51,11 +52,9 @@ export class IndexingStream<T> implements AsyncIterable<T> {
     const start = performance.now()
 
     // 发射 run.start 事件
-    if (this.emitCtx) {
-      emitEvent(this.emitCtx, "run", "indexing.run.start", {
-        totalDocuments: this.result.totalDocuments,
-      })
-    }
+    this.emitter?.event("run", "indexing.run.start", {
+      totalDocuments: this.result.totalDocuments,
+    })
 
     try {
       for await (const _ of this.source) {
@@ -65,14 +64,12 @@ export class IndexingStream<T> implements AsyncIterable<T> {
       const durationMs = performance.now() - start
 
       // 发射 run.complete 事件
-      if (this.emitCtx) {
-        emitEvent(this.emitCtx, "run", "indexing.run.complete", {
-          totalDocuments: this.result.totalDocuments,
-          totalChunks: this.result.totalChunks,
-          errorCount: this.result.errors.length,
-          pipelineStages: this.pipelineStages,
-        }, durationMs)
-      }
+      this.emitter?.event("run", "indexing.run.complete", {
+        totalDocuments: this.result.totalDocuments,
+        totalChunks: this.result.totalChunks,
+        errorCount: this.result.errors.length,
+        pipelineStages: this.pipelineStages,
+      }, durationMs)
 
       this.traceHandle?.end("ok")
       return this.result
@@ -80,11 +77,9 @@ export class IndexingStream<T> implements AsyncIterable<T> {
       const durationMs = performance.now() - start
 
       // 发射 run.fail 事件
-      if (this.emitCtx) {
-        emitError(this.emitCtx, "run", "indexing.run.fail", err as Error, {
-          durationMs,
-        })
-      }
+      this.emitter?.error("run", "indexing.run.fail", err as Error, {
+        durationMs,
+      })
 
       this.traceHandle?.end("error")
       throw err
@@ -164,12 +159,7 @@ export const PipelineSteps = {
     loader: Loader,
     options?: {
       observer?: RAGObserver
-      trace?: {
-        traceId?: string
-        dataset?: string
-        version?: string
-        tags?: Record<string, string | number | boolean>
-      }
+      trace?: TraceOptions
     }
   ): IndexingStream<{ doc: Document; context: IndexingContext }> {
     const result: IndexingResult = { totalDocuments: 0, totalChunks: 0, errors: [] }
@@ -177,17 +167,9 @@ export const PipelineSteps = {
     const traceId = options?.trace?.traceId || createId("trace")
     const traceHandle = options?.observer?.startTrace?.(traceId, "indexing")
 
-    // 创建 emit context
-    const emitCtx = options?.observer
-      ? createEmitContext(
-          traceId,
-          options.observer,
-          {
-            dataset: options.trace?.dataset,
-            version: options.trace?.version,
-            tags: options.trace?.tags,
-          }
-        )
+    // 创建 indexing 发射器（绑定 scope 与 trace baseAttributes）
+    const emitter = options?.observer
+      ? createIndexingEmitter(traceId, options.observer, options.trace)
       : undefined
 
     async function* generate() {
@@ -198,11 +180,9 @@ export const PipelineSteps = {
         const durationMs = performance.now() - start
 
         // 发射 load.complete 事件
-        if (emitCtx) {
-          emitEvent(emitCtx, "load", "indexing.load.complete", {
-            documentCount: docs.length,
-          }, durationMs)
-        }
+        emitter?.event("load", "indexing.load.complete", {
+          documentCount: docs.length,
+        }, durationMs)
 
         for (let i = 0; i < docs.length; i++) {
           yield { doc: docs[i], context: { documentIndex: i, totalDocuments: docs.length } }
@@ -211,17 +191,15 @@ export const PipelineSteps = {
         const durationMs = performance.now() - start
 
         // 发射 load.fail 事件
-        if (emitCtx) {
-          emitError(emitCtx, "load", "indexing.load.fail", err as Error, {
-            durationMs,
-          })
-        }
+        emitter?.error("load", "indexing.load.fail", err as Error, {
+          durationMs,
+        })
 
         result.errors.push(err instanceof Error ? err : new Error(String(err)))
       }
     }
 
-    return new IndexingStream(generate(), result, emitCtx, ["load"], traceHandle)
+    return new IndexingStream(generate(), result, emitter, ["load"], traceHandle)
   },
 
   filter(

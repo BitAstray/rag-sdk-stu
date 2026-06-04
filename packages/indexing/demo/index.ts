@@ -18,6 +18,9 @@ writeFileSync(join(dir, "rag-intro.md"), `# RAG 简介\n\nRAG（Retrieval-Augmen
 writeFileSync(join(dir, "vector-db.md"), `# 向量数据库\n\n向量数据库是存储和检索高维向量的专用数据库。常见的向量数据库包括 Pinecone、Weaviate、Milvus 和 Qdrant。`)
 
 try {
+  const loader = new MarkdownLoader(dir)
+  const chunker = new SimpleChunker()
+  const embedder = new MockEmbedder()
   const store = new MemoryVectorStore()
 
   const result = await PipelineSteps.fromLoader(loader)
