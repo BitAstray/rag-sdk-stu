@@ -329,7 +329,7 @@ interface SelectionTraceItem {
 
 > 高级用法。大多数场景用 `createDefaultRuntime` 即可。
 
-`createRuntime` 接受 `DAGNode[]`，通过依赖图自动解析执行顺序：
+`createRuntime` 接受 `DAGNode[]`，通过依赖图自动解析执行顺序。每个 DAGNode 还可以自主声明需要上报的遥测数据（Telemetry），DAG 引擎将代理自动发射可观测事件。
 
 ```ts
 import { createRuntime } from "@rag-sdk/runtime"
@@ -339,11 +339,30 @@ const nodes: DAGNode[] = [
   {
     id: "preprocessor",
     dependencies: ["query"],
+    telemetry: {
+      stage: "query",
+      events: {
+        start: "runtime.query.receive",
+        complete: "runtime.query.preprocess",
+        fail: "runtime.run.fail"
+      }
+    },
     execute: async (inputs) => myPreprocessor.preprocess(inputs.query),
   },
   {
     id: "retriever",
     dependencies: ["preprocessor"],
+    telemetry: {
+      stage: "retrieval",
+      events: {
+        start: "runtime.retrieval.start",
+        complete: "runtime.retrieval.complete",
+        fail: "runtime.retrieval.fail"
+      },
+      extractMetrics: (output: any) => ({
+        candidateCount: output.candidates?.length ?? 0
+      })
+    },
     execute: async (inputs) => myRetriever.retrieve(inputs.preprocessor),
   },
   {

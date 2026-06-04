@@ -11,7 +11,10 @@
       "import": "./src/index.ts"
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "@rag-sdk/core": "workspace:*",
+    "@rag-sdk/utils": "workspace:*"
+  },
   "devDependencies": {},
   "scripts": {}
 }

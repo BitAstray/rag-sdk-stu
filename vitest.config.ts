@@ -18,6 +18,12 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     exclude: ['**/node_modules/**', '**/dist/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      include: ['packages/*/src/**/*.ts'],
+      exclude: ['**/__tests__/**', '**/index.ts'],
+    },
     projects: [
       {
         test: {

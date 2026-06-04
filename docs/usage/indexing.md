@@ -113,6 +113,25 @@ const result = await PipelineSteps.fromLoader(loader)
   .consume()
 ```
 
+### 隐式流调度（批处理与重试）
+
+`PipelineSteps` 内置了强大的管线调度器，在调用 `pipe` 添加节点时，你可以传入 `TransformOptions` 自动支持批处理合并、并发和错误重试。这对 `embed` 和 `store` 等外部 I/O 阶段尤其有用。
+
+```ts
+const result = await PipelineSteps.fromLoader(loader)
+  .pipe(PipelineSteps.chunk(chunker))
+  .pipe(PipelineSteps.embed(embedder, { 
+    batchSize: 50,      // 累积 50 个 Chunk 后再调用 embedder
+    concurrency: 3,     // 允许 3 个并行的 embedding 请求
+    retry: 2            // 失败时最多重试 2 次
+  }))
+  .pipe(PipelineSteps.store(store, {
+    batchSize: 500,     // 累积 500 个 Vector 后再写入向量数据库
+    retry: 3
+  }))
+  .consume()
+```
+
 ### 返回值
 
 `consume()` 返回 `IndexingResult`：

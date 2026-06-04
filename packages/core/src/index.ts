@@ -1,4 +1,5 @@
 // Types & Schemas
+export type { JsonPrimitive, JsonValue, JsonObject } from "./spec/json.js"
 export type { Query } from "./spec/query.js"
 export { QuerySchema } from "./spec/query.js"
 export type { Chunk } from "./spec/chunk.js"

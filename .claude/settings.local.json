@@ -8,6 +8,10 @@
       "Bash(npx tsgo *)",
       "Bash(npx vitest *)",
       "Bash(pnpm *)",
+<<<<<<< HEAD
+=======
+      "Bash(npx tsx *)",
+>>>>>>> f0a45ce77be7e0d2109a8d21786c84ba186afb8f
       "Bash(git push *)"
     ]
   }
